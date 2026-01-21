@@ -1,9 +1,6 @@
 // src/features/menu/components/MenuCard.tsx
 import { Plus } from 'lucide-react';
 import { type Menu } from '../../shop/types'; // ยืม Type มาจาก Shop ก่อน
-const cn = (...inputs: Array<string | false | null | undefined>) => {
-  return inputs.filter(Boolean).join(' ');
-};
 
 interface MenuCardProps {
   data: Menu;
