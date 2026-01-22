@@ -1,8 +1,9 @@
 // src/components/layouts/DashboardLayout.tsx
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Store, Coffee, ShoppingBag, LogOut, Menu } from 'lucide-react';
+import { Store, ShoppingBag, LogOut, Menu, ChefHat, X } from 'lucide-react'; // เพิ่ม icon X
 import { useAuthStore } from '../../stores/use-auth-store';
 import { useState } from 'react';
+import { FloatingCart } from '../../features/order/components/FloatingCart';
 
 const cn = (...inputs: Array<string | false | null | undefined>) => {
   return inputs.filter(Boolean).join(' ');
@@ -12,30 +13,59 @@ export const DashboardLayout = () => {
   const { logout, user } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // เมนูนำทาง (เดี๋ยวเราปรับตาม Role ได้)
-  const navItems = [
-    { label: 'ภาพรวม', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'จัดการร้านค้า', href: '/shops', icon: Store },
-    { label: 'รายการอาหาร', href: '/menus', icon: Coffee },
-    { label: 'ออเดอร์', href: '/orders', icon: ShoppingBag },
+  // 1. แยกเมนูตาม Role
+  const adminNavItems = [
+    { label: 'จัดการร้านค้า', href: '/admin/shops', icon: Store },
+    { label: 'ห้องครัว (ออเดอร์)', href: '/admin/orders', icon: ChefHat },
   ];
 
+  const userNavItems = [
+    { label: 'เลือกร้านอาหาร', href: '/shops', icon: Store },
+    { label: 'ตะกร้าสินค้า', href: '/cart', icon: ShoppingBag },
+  ];
+
+  const navItems = user?.role === 'ADMIN' ? adminNavItems : userNavItems;
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* 1. Sidebar (Desktop) */}
-      <aside className="hidden md:flex w-64 flex-col bg-slate-900 text-white fixed h-full shadow-xl z-20">
-        <div className="p-6 border-b border-slate-800">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-            POS System
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">ยินดีต้อนรับ, {user?.username || 'Admin'}</p>
+    <div className="min-h-screen bg-gray-50 flex relative">
+      
+      {/* 🌑 Overlay ฉากหลังมืดๆ (เฉพาะตอนเปิดเมนูในมือถือ) */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 md:hidden animate-fade-in"
+          onClick={() => setIsMobileMenuOpen(false)} // แตะฉากหลังเพื่อปิด
+        />
+      )}
+
+      {/* 🚪 Sidebar (แก้ใหม่ให้รองรับทั้ง Desktop และ Mobile Slide-in) */}
+      <aside className={cn(
+        "fixed top-0 left-0 z-40 h-full w-64 bg-slate-900 text-white shadow-2xl transition-transform duration-300 ease-in-out",
+        // Desktop: โชว์ตลอดเวลา (translate-x-0)
+        // Mobile: ถ้าเปิดให้โชว์ (translate-x-0) ถ้าปิดให้ซ่อน (-translate-x-full)
+        "md:translate-x-0", 
+        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+              POS System
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              {user?.role === 'ADMIN' ? '👑 ผู้จัดการ' : '👋 ลูกค้า'}: {user?.username}
+            </p>
+          </div>
+          {/* ปุ่มปิดเมนู (เฉพาะมือถือ) */}
+          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white">
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.href}
               to={item.href}
+              onClick={() => setIsMobileMenuOpen(false)} // กดเมนูแล้วปิด Sidebar อัตโนมัติ
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200",
@@ -54,8 +84,10 @@ export const DashboardLayout = () => {
         <div className="p-4 border-t border-slate-800">
           <button
             onClick={() => {
-              logout();
-              window.location.href = '/login';
+              if(confirm('ออกจากระบบ?')) {
+                logout();
+                window.location.href = '/login';
+              }
             }}
             className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
           >
@@ -65,18 +97,25 @@ export const DashboardLayout = () => {
         </div>
       </aside>
 
-      {/* 2. Main Content Area */}
-      <main className="flex-1 md:ml-64 p-8">
-        {/* Mobile Header (โชว์เฉพาะมือถือ) */}
-        <div className="md:hidden flex items-center justify-between mb-6 bg-white p-4 rounded-xl shadow-sm">
-          <span className="font-bold text-slate-900">POS System</span>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            <Menu className="w-6 h-6 text-slate-600" />
+      {/* 2. Main Content */}
+      <main className="flex-1 md:ml-64 p-4 md:p-8 min-h-screen w-full">
+        {/* Mobile Header Button */}
+        <div className="md:hidden flex items-center mb-6">
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 bg-white rounded-lg shadow-sm text-slate-700 hover:bg-gray-50 border border-gray-200"
+          >
+            <Menu className="w-6 h-6" />
           </button>
+          <span className="ml-4 font-bold text-slate-900 text-lg">
+            {/* โชว์ชื่อหน้านิดหน่อย */}
+            POS System
+          </span>
         </div>
 
-        {/* พื้นที่เจาะรู สำหรับแสดงเนื้อหาแต่ละหน้า */}
         <Outlet /> 
+        
+        {user?.role === 'USER' && <FloatingCart />}
       </main>
     </div>
   );

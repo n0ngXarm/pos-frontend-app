@@ -1,16 +1,16 @@
 // src/features/menu/components/MenuCard.tsx
 import { Plus } from 'lucide-react';
-import { type Menu } from '../../shop/types'; // ยืม Type มาจาก Shop ก่อน
+import type { Menu } from '../../shop/types';
 
 interface MenuCardProps {
   data: Menu;
-  onAddToCart: (menu: Menu) => void;
+  onAddToCart?: (menu: Menu) => void;
 }
 
 export const MenuCard = ({ data, onAddToCart }: MenuCardProps) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col group hover:shadow-md transition-all">
-      {/* รูปอาหาร */}
+      {/* ส่วนรูปภาพ */}
       <div className="h-40 overflow-hidden relative">
         <img 
           src={data.image_url || "https://placehold.co/400x300?text=No+Food"} 
@@ -33,11 +33,10 @@ export const MenuCard = ({ data, onAddToCart }: MenuCardProps) => {
         </p>
 
         <button 
-          onClick={() => onAddToCart(data)}
+          onClick={() => onAddToCart?.(data)}
           className="w-full mt-auto flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg transition-colors active:scale-95"
         >
-          <Plus className="w-4 h-4" />
-          เพิ่มลงตะกร้า
+          <Plus className="w-4 h-4" /> เพิ่มลงตะกร้า
         </button>
       </div>
     </div>

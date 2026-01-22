@@ -1,25 +1,23 @@
 // src/features/shop/types/index.ts
+// ต้องมี export ทั้ง 3 ตัวนี้ ห้ามขาด!
 
-// 1. ตาราง tbl_restaurants
 export interface Restaurant {
   restaurant_id: number;
   restaurant_name: string;
   address: string;
   phone: string;
-  image_url: string;        // ใน DB เป็น LONGTEXT
-  owner_description?: string; // ใน DB เห็นมี field นี้ด้วย
+  image_url: string;
+  owner_description?: string;
 }
 
-// 2. ตาราง tbl_menus (เตรียมไว้ก่อน)
 export interface Menu {
   menu_id: number;
   restaurant_id: number;
   menu_name: string;
   description: string;
-  price: number;            // DECIMAL
+  price: number;
   image_url: string;
-  category: string;
+  category?: string;
 }
 
-// Response เวลาดึง list ร้านค้า
 export type RestaurantListResponse = Restaurant[];
