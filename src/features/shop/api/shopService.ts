@@ -20,26 +20,35 @@ export const getRestaurants = async (): Promise<Restaurant[]> => {
   return data;
 };
 
-export const getRestaurantById = async (id: string): Promise<Restaurant> => {
-  const { data } = await api.get<Restaurant>(`/restaurants/${id}`);
-  return data;
-};
-export const getMenusByRestaurantId = async (restaurantId: string): Promise<Menu[]> => {
-  // 1. ป้องกัน ID เน่า
-  if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null') {
-    console.warn("⚠️ เจอ ID ร้านค้าที่ไม่ถูกต้อง:", restaurantId);
-    return [];
+export const getRestaurantById = async (id: string): Promise<Restaurant | null> => {
+  // 🛡️ ด่านตรวจ: ถ้า ID เป็น undefined, null หรือว่างเปล่า -> หยุดทันที!
+  if (!id || id === 'undefined' || id === 'null') {
+    return null;
   }
 
   try {
-    // 2. ยิงไปที่ /menus ธรรมดา (ที่มีอยู่จริงแน่นอน)
-    const { data } = await api.get<Menu[]>('/menus'); 
+    const { data } = await api.get<Restaurant>(`/restaurants/${id}`);
+    return data;
+  } catch (error) {
+    console.warn("⚠️ หาข้อมูลร้านไม่เจอ:", error);
+    return null;
+  }
+};
+export const getMenusByRestaurantId = async (restaurantId: string): Promise<Menu[]> => {
+  // 🛡️ ด่านตรวจ
+  if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null') {
+    return []; // คืนค่าตระกร้าว่างๆ ไปเลย เร็วปรู๊ด!
+  }
+
+  try {
+    // 🚀 ใช้สูตร Safe Fetch: ดึงมาทั้งหมดแล้วคัดเลือกหน้าบ้าน (ชัวร์สุดสำหรับตอนนี้)
+    const { data } = await api.get<Menu[]>('/menus');
     
-    // 3. กรองเอาเองหน้าบ้าน (Safe สุดๆ)
+    // คัดเอาเฉพาะเมนูของร้านนี้
     return data.filter(menu => menu.restaurant_id === Number(restaurantId));
   } catch (error) {
-    console.error("โหลดเมนูไม่ได้:", error);
-    return []; // กันหน้าจอขาว
+    console.error("❌ โหลดเมนูไม่ได้:", error);
+    return [];
   }
 };
 
