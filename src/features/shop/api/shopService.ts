@@ -1,7 +1,6 @@
 // src/features/shop/api/shopService.ts
 import { api } from '../../../lib/axios';
-import type { Restaurant } from '../types';
-import { type Menu } from '../types';
+import type { Restaurant, Menu } from '../types';
 
 // 👇 เพิ่ม Interface สำหรับ Order Payload
 export interface CreateOrderPayload {
@@ -14,40 +13,41 @@ export interface CreateOrderPayload {
   order_date: string; // ส่งเป็น string ISO format
 }
 
+// ดึงร้านค้าทั้งหมด
 export const getRestaurants = async (): Promise<Restaurant[]> => {
-  // ยิงไปที่ URL: /api/restaurants (ต้องเช็คกับ Swagger ว่า path นี้จริงมั้ย)
   const { data } = await api.get<Restaurant[]>('/restaurants'); 
   return data;
 };
 
+// 👇 แก้ฟังก์ชันนี้: เพิ่มด่านตรวจจับ "undefined"
 export const getRestaurantById = async (id: string): Promise<Restaurant | null> => {
-  // 🛡️ ด่านตรวจ: ถ้า ID เป็น undefined, null หรือว่างเปล่า -> หยุดทันที!
-  if (!id || id === 'undefined' || id === 'null') {
-    return null;
+  // เช็คละเอียด: ถ้า id เป็นค่าว่าง, null, หรือคำว่า "undefined" ให้ดีดกลับทันที
+  if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
+    console.warn("🚫 ป้องกันการยิง API ด้วย ID ที่ไม่ถูกต้อง:", id);
+    return null; // กลับไปมือเปล่า ดีกว่าพาทัวร์ไปลงเหว (404)
   }
 
   try {
     const { data } = await api.get<Restaurant>(`/restaurants/${id}`);
     return data;
   } catch (error) {
-    console.warn("⚠️ หาข้อมูลร้านไม่เจอ:", error);
+    console.error("❌ API Error:", error);
     return null;
   }
 };
+
+// 👇 แก้ฟังก์ชันนี้ด้วย: ด่านตรวจจับเหมือนกัน
 export const getMenusByRestaurantId = async (restaurantId: string): Promise<Menu[]> => {
-  // 🛡️ ด่านตรวจ
   if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null') {
-    return []; // คืนค่าตระกร้าว่างๆ ไปเลย เร็วปรู๊ด!
+    return []; // คืนค่าตะกร้าว่างทันที เร็วปรู๊ด!
   }
 
   try {
-    // 🚀 ใช้สูตร Safe Fetch: ดึงมาทั้งหมดแล้วคัดเลือกหน้าบ้าน (ชัวร์สุดสำหรับตอนนี้)
+    // ใช้สูตร Safe Fetch: ดึงมาทั้งหมดแล้วคัดเลือกหน้าบ้าน
     const { data } = await api.get<Menu[]>('/menus');
-    
-    // คัดเอาเฉพาะเมนูของร้านนี้
     return data.filter(menu => menu.restaurant_id === Number(restaurantId));
   } catch (error) {
-    console.error("❌ โหลดเมนูไม่ได้:", error);
+    console.error("❌ Menu Load Error:", error);
     return [];
   }
 };

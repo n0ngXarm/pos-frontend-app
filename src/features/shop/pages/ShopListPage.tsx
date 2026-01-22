@@ -1,136 +1,97 @@
-// src/features/shop/pages/ShopDetailPage.tsx
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingBag, MapPin, Phone } from 'lucide-react'; // เพิ่ม Icon
-import { getRestaurantById, getMenusByRestaurantId } from '../api/shopService';
+import { useNavigate } from 'react-router-dom';
+import { Loader2, Search } from 'lucide-react';
+import { getRestaurants } from '../api/shopService';
 import type { Restaurant, Menu } from '../types';
-import { MenuCard } from '../../menu/components/MenuCard';
-import { useCartStore } from '../../../stores/useCartStore';
+import { ShopCard } from '../components/ShopCard';
 
-export const ShopDetailPage = () => {
-  const { id } = useParams();
+export const ShopListPage = () => {
   const navigate = useNavigate();
-  const addItemToCart = useCartStore((state) => state.addItem);
-
-  const [shop, setShop] = useState<Restaurant | null>(null);
-  const [menus, setMenus] = useState<Menu[]>([]);
-  
-  // สถานะการโหลด
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const fetchRestaurants = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await getRestaurants();
+      setRestaurants(data);
+    } catch (err) {
+      console.error(err);
+      setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // ถ้าไม่มี ID ไม่ต้องทำอะไรเลย (เดี๋ยว Service จัดการให้)
-    if (!id) return;
+    fetchRestaurants();
+  }, []);
 
-    const fetchData = async () => {
-      setIsLoading(true); 
-      try {
-        // โหลดพร้อมกัน 2 ทาง (Parallel) เพื่อความไว
-        const [shopData, menusData] = await Promise.all([
-          getRestaurantById(id),
-          getMenusByRestaurantId(id)
-        ]);
+  const filteredRestaurants = restaurants.filter(shop => 
+    shop.restaurant_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-        if (shopData) setShop(shopData);
-        if (menusData) setMenus(menusData);
-        
-      } catch (error) {
-        console.error("Error loading details:", error);
-      } finally {
-        setIsLoading(false); // จบงานแล้ว ปิดหน้าโหลด
-      }
-    };
-
-    fetchData();
-  }, [id]);
-
-  // 1. Loading State: โชว์ Skeleton สวยๆ (กล่องเทาๆ)
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse max-w-7xl mx-auto">
-        {/* Header Skeleton */}
-        <div className="h-32 bg-gray-200 rounded-xl w-full"></div>
-        
-        {/* Menu Grid Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-72 bg-gray-200 rounded-xl"></div>
-            ))}
-        </div>
-      </div>
-    );
-  }
-
-  // 2. Error State: ถ้าหาไม่เจอจริงๆ
-  if (!shop) {
-    return (
-      <div className="text-center py-20">
-        <h2 className="text-2xl font-bold text-slate-800">ไม่พบข้อมูลร้านค้า</h2>
-        <button onClick={() => navigate('/shops')} className="text-indigo-600 mt-4 hover:underline">
-          กลับไปหน้ารวมร้านค้า
-        </button>
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Header ร้านค้า */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-6 relative">
-        <button 
-            onClick={() => navigate('/shops')} 
-            className="absolute top-4 left-4 p-2 bg-white/80 hover:bg-white rounded-full shadow-sm z-10 text-slate-500 hover:text-slate-800 transition-colors"
-        >
-            <ArrowLeft className="w-5 h-5" />
-        </button>
-
-        <img 
-          src={shop.image_url || "https://placehold.co/100"} 
-          className="w-24 h-24 rounded-full object-cover border-4 border-gray-50 shadow-md"
-        />
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <h1 className="text-2xl font-bold text-slate-800">ร้านอาหารทั้งหมด 🏪</h1>
         
-        <div className="text-center md:text-left flex-1">
-          <h1 className="text-3xl font-bold text-slate-900 mb-1">{shop.restaurant_name}</h1>
-          <div className="flex flex-col md:flex-row gap-3 text-slate-500 text-sm justify-center md:justify-start">
-            <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" /> {shop.address}
-            </div>
-            <div className="flex items-center gap-1">
-                <Phone className="w-4 h-4" /> {shop.phone}
-            </div>
-          </div>
+        <div className="relative w-full md:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input 
+            type="text"
+            placeholder="ค้นหาร้าน..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
         </div>
       </div>
 
-      {/* รายการเมนู */}
-      <div>
-        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span className="bg-indigo-600 w-2 h-6 rounded-full inline-block"></span>
-            เมนูแนะนำ
-        </h2>
-        
+      {error && (
+        <div className="p-8 bg-red-50 text-red-600 rounded-xl text-center border border-red-100">
+          <p className="font-medium mb-4">{error}</p>
+          <button 
+            onClick={fetchRestaurants}
+            className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors shadow-sm"
+          >
+            ลองใหม่อีกครั้ง ↻
+          </button>
+        </div>
+      )}
+
+      {!error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {menus.length > 0 ? (
-            menus.map((menu) => (
-                <MenuCard 
-                    key={menu.menu_id} 
-                    data={menu} 
-                    onAddToCart={(item) => {
-                        addItemToCart(item);
-                        // ถ้าอยากใช้ Alert ก็ uncomment บรรทัดล่าง
-                        // alert(`เพิ่ม ${item.menu_name} ลงตะกร้าแล้ว`); 
-                    }}
-                />
-            ))
-            ) : (
-            <div className="col-span-full py-16 text-center bg-white rounded-xl border border-dashed border-gray-200 text-slate-400">
-                <ShoppingBag className="w-16 h-16 mx-auto mb-3 opacity-20" />
-                <p className="text-lg">ร้านนี้ยังไม่มีเมนูอาหาร</p>
-                <p className="text-sm opacity-70">แวะมาใหม่วันหลังนะ</p>
+          {filteredRestaurants.map((shop) => {
+            if (!shop.restaurant_id) return null;
+
+            return (
+              <ShopCard 
+                key={shop.restaurant_id} 
+                data={shop} 
+                onClick={() => navigate(`/shops/${shop.restaurant_id}`)} 
+              />
+            );
+          })}
+          
+          {filteredRestaurants.length === 0 && (
+            <div className="col-span-full text-center py-12 text-slate-400">
+              ไม่พบร้านค้าที่ค้นหา
             </div>
-            )}
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 };
