@@ -1,6 +1,6 @@
 // src/features/order/components/PaymentModal.tsx
 import { useState, useEffect } from 'react';
-import { X, Clock, Wallet, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Clock, Wallet } from 'lucide-react';
 import { generatePromptPayQR, updateOrderStatus } from '../../shop/api/shopService';
 
 interface PaymentModalProps {

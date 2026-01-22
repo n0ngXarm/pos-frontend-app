@@ -1,7 +1,7 @@
 // src/features/order/components/CartPage.tsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Plus, Minus, ArrowLeft, Loader2, CreditCard, Banknote, QrCode } from 'lucide-react';
+import { ArrowLeft, Loader2, Banknote, QrCode } from 'lucide-react';
 import { useCartStore } from '../../../stores/useCartStore';
 import { useAuthStore } from '../../../stores/use-auth-store';
 import { createOrder } from '../../shop/api/shopService';
@@ -9,7 +9,7 @@ import { PaymentModal } from './PaymentDialog'; // Import Modal ใหม่
 
 export const CartPage = () => {
   const navigate = useNavigate();
-  const { items, removeItem, updateQuantity, getTotalPrice, clearCart } = useCartStore();
+  const { items, getTotalPrice, clearCart } = useCartStore();
   const { user } = useAuthStore();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
