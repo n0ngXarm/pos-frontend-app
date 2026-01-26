@@ -85,23 +85,23 @@ export const AdminOrderPage = () => {
   if (isLoading) return <div className="p-8 text-center text-2xl animate-pulse">กำลังเชื่อมต่อระบบครัว...</div>;
 
   return (
-    <div className="space-y-6 pb-20">
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-10">
+    <div className="space-y-6 pb-20 bg-slate-900 min-h-screen -m-4 md:-m-8 p-4 md:p-8 text-slate-100 font-mono">
+      <div className="flex justify-between items-center bg-slate-900/80 backdrop-blur-md p-4 rounded-none border-b border-amber-900/30 sticky top-0 z-20">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-900 flex items-center gap-2">
-            👨‍🍳 ครัว (Kitchen)
-            <span className="text-xs font-normal bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+          <h1 className="text-xl md:text-2xl font-bold text-amber-400 flex items-center gap-2 tracking-wider uppercase">
+            KDS SYSTEM v2.0
+            <span className="text-[10px] font-normal bg-green-950 text-green-400 border border-green-800 px-2 py-0.5 rounded-sm flex items-center gap-1">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
               Live
             </span>
           </h1>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => fetchOrders()} className="p-2 hover:bg-gray-100 rounded-full">
-            <RefreshCw className="w-5 h-5 text-slate-500" />
+          <button onClick={() => fetchOrders()} className="p-2 hover:bg-slate-700 rounded-full transition-colors">
+            <RefreshCw className="w-5 h-5 text-slate-400" />
           </button>
-          <button onClick={playSound} className="p-2 hover:bg-gray-100 rounded-full">
-            <Bell className="w-5 h-5 text-slate-500" />
+          <button onClick={playSound} className="p-2 hover:bg-slate-700 rounded-full transition-colors">
+            <Bell className="w-5 h-5 text-slate-400" />
           </button>
         </div>
       </div>
@@ -112,65 +112,66 @@ export const AdminOrderPage = () => {
           <div 
             key={order.order_id} 
             className={`
-              relative flex flex-col rounded-xl border-l-4 shadow-sm overflow-hidden bg-white transition-all hover:shadow-md
-              ${order.order_status === 'cooking' ? 'border-blue-500 ring-1 ring-blue-100' : 'border-amber-400'}
+              relative flex flex-col rounded-sm border border-slate-800 bg-slate-900/50 shadow-2xl overflow-hidden transition-all
+              ${order.order_status === 'cooking' ? 'ring-1 ring-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'opacity-90'}
             `}
           >
             {/* Header: เล็กลงหน่อย */}
-            <div className="px-4 py-3 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
+            <div className={`px-4 py-2 border-b border-slate-800 flex justify-between items-center ${order.order_status === 'cooking' ? 'bg-amber-900/30' : 'bg-slate-950'}`}>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-1 bg-slate-200 text-slate-600 rounded text-xs font-mono font-bold">
+                <span className="text-lg font-bold text-white">
                   #{order.order_id}
                 </span>
-                <span className="text-xs text-gray-400 flex items-center gap-1">
+                <span className="text-xs text-slate-500 flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   {new Date(order.order_date).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
               <div className={`
-                text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full
-                ${order.order_status === 'cooking' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}
+                text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm
+                ${order.order_status === 'cooking' ? 'bg-amber-900 text-amber-300 animate-pulse' : 'bg-slate-800 text-slate-500'}
               `}>
                 {order.order_status === 'cooking' ? 'Cooking...' : 'Waiting'}
               </div>
             </div>
 
             {/* Content: ปรับขนาดตัวอักษรให้พอดีตา */}
-            <div className="p-4 flex-1 flex flex-col items-center justify-center text-center gap-1">
-              <h3 className="text-lg font-bold text-slate-800 line-clamp-2 leading-tight">
+            <div className="p-6 flex-1 flex flex-col items-center justify-center text-center gap-2">
+              <h3 className="text-xl font-bold text-slate-200 line-clamp-2 leading-tight">
                 {order.menu_name || `Menu ${order.menu_id}`}
               </h3>
               
               {/* ปริมาณ: ลดจาก 5xl เหลือ 3xl-4xl */}
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-3xl font-black text-slate-900">x{order.quantity}</span>
-                <span className="text-sm text-slate-400 font-medium">ที่</span>
+                <span className={`text-5xl font-black ${order.order_status === 'cooking' ? 'text-amber-400' : 'text-slate-400'}`}>
+                    {order.quantity}
+                </span>
               </div>
             </div>
 
             {/* Actions: ปุ่ม Compact ขึ้น */}
-            <div className="grid grid-cols-2 border-t border-gray-100 divide-x divide-gray-100">
+            <div className="grid grid-cols-2 border-t border-slate-800 divide-x divide-slate-800">
               {order.order_status === 'pending' ? (
                 <>
                   <button 
                     onClick={() => handleStatusChange(order.order_id, 'cancelled')}
-                    className="py-3 bg-white hover:bg-red-50 text-red-500 text-sm font-semibold flex items-center justify-center gap-1 transition-colors"
+                    className="py-4 hover:bg-red-950/50 text-red-500 text-sm font-bold uppercase tracking-wider transition-colors"
                   >
-                    <X className="w-4 h-4" /> ยกเลิก
+                    Cancel
                   </button>
                   <button 
                     onClick={() => handleStatusChange(order.order_id, 'cooking')}
-                    className="py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold flex items-center justify-center gap-1 transition-colors"
+                    className="py-4 bg-amber-900/20 hover:bg-amber-900/40 text-amber-400 text-sm font-bold uppercase tracking-wider transition-colors"
                   >
-                    <ChefHat className="w-4 h-4" /> ปรุง
+                    Cook
                   </button>
                 </>
               ) : (
                 <button 
                   onClick={() => handleStatusChange(order.order_id, 'completed')}
-                  className="col-span-2 py-3 bg-green-500 hover:bg-green-600 text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+                  className="col-span-2 py-4 bg-green-600 hover:bg-green-500 text-white text-sm font-bold uppercase tracking-wider transition-colors"
                 >
-                  <CheckCircle className="w-5 h-5" /> เสร็จสิ้น
+                  Complete Order
                 </button>
               )}
             </div>
@@ -179,7 +180,7 @@ export const AdminOrderPage = () => {
       </div>
 
       {orders.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-300 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+        <div className="flex flex-col items-center justify-center py-20 text-slate-600 border-2 border-dashed border-slate-700 rounded-xl bg-slate-800/50">
           <ChefHat className="w-16 h-16 mb-2 opacity-20" />
           <p className="font-medium">No active orders</p>
         </div>

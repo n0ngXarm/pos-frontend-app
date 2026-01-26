@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/use-auth-store'; // ✅ ตรงกั�
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  timeout: 10000,
+  timeout: 300000, // 🔧 ปรับเป็น 5 นาที (แก้ปัญหา Server อืดแล้วตัดจบก่อน)
 });
 
 // Request Interceptor

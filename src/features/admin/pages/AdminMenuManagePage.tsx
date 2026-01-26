@@ -169,7 +169,7 @@ export const AdminMenuManagePage = () => {
       <MenuManageDialog 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSave}
+        onSave={handleSave}
         initialData={editingMenu}
       />
     </div>

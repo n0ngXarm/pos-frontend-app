@@ -78,39 +78,48 @@ export const ShopDetailPage = () => {
   // ✅ Success State: แสดงผลปกติ
   return (
     <div className="space-y-6 pb-20">
-      {/* Header ร้านค้า */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+      {/* 🖼️ Header ร้านค้าแบบอลังการ */}
+      <div className="relative bg-white rounded-3xl shadow-lg overflow-hidden group">
+        {/* Background Image (Blurred) */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center blur-sm opacity-30 group-hover:scale-105 transition-transform duration-700"
+          style={{ backgroundImage: `url(${shop.image_url || "https://placehold.co/600x200"})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
+
+        <div className="relative p-8 flex flex-col md:flex-row items-center gap-6">
         <button 
             onClick={() => navigate('/shops')} 
-            className="absolute top-4 left-4 p-2 bg-white/90 hover:bg-gray-100 rounded-full shadow-sm z-10 text-slate-600 transition-colors"
+            className="absolute top-4 left-4 p-2 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full shadow-sm z-10 text-slate-600 transition-all hover:scale-110"
         >
             <ArrowLeft className="w-5 h-5" />
         </button>
 
         <img 
           src={shop.image_url || "https://placehold.co/100"} 
-          className="w-24 h-24 rounded-full object-cover border-4 border-gray-50 shadow-md shrink-0"
+          className="w-32 h-32 rounded-2xl object-cover shadow-xl rotate-3 border-4 border-white bg-white shrink-0"
         />
         
         <div className="text-center md:text-left flex-1">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">{shop.restaurant_name}</h1>
+          <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">{shop.restaurant_name}</h1>
           <div className="flex flex-col md:flex-row gap-4 text-slate-500 text-sm justify-center md:justify-start">
             <div className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-indigo-500" /> 
+                <MapPin className="w-4 h-4 text-amber-500" /> 
                 <span>{shop.address}</span>
             </div>
             <div className="flex items-center gap-1.5">
-                <Phone className="w-4 h-4 text-indigo-500" /> 
+                <Phone className="w-4 h-4 text-amber-500" /> 
                 <span>{shop.phone}</span>
             </div>
           </div>
         </div>
       </div>
+      </div>
 
       {/* รายการเมนู */}
       <div>
         <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+            <span className="w-2 h-8 bg-blue-600 rounded-full"></span>
             เมนูแนะนำ
         </h2>
         

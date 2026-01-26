@@ -19,6 +19,12 @@ export const getRestaurants = async (): Promise<Restaurant[]> => {
   return data;
 };
 
+// 👇 สร้างร้านค้าใหม่ (สำหรับ User ที่อยากเป็นเจ้าของร้าน)
+export const createRestaurant = async (restaurantData: Partial<Restaurant>) => {
+  const { data } = await api.post<Restaurant>('/restaurants', restaurantData);
+  return data;
+};
+
 // 👇 จุดแก้ที่ 1: เพิ่ม "ยามเฝ้าประตู"
 export const getRestaurantById = async (id: string): Promise<Restaurant | null> => {
   // ถ้าไม่มีบัตร (ID เสีย) ห้ามผ่าน!
@@ -88,8 +94,67 @@ export const updateOrderStatus = async (orderId: number, status: string) => {
   return data;
 };
 
-// เพิ่มฟังก์ชันสร้าง PromptPay QR Code แบบ Real-time
-// ใช้บริการของ promptpay.io (ง่ายและฟรี ไม่ต้องลง library เพิ่ม)
+// 👇 ฟังก์ชันคำนวณ Checksum (CRC16) ตามมาตรฐาน PromptPay
+function crc16(data: string): string {
+  let crc = 0xFFFF;
+  for (let i = 0; i < data.length; i++) {
+    let x = ((crc >> 8) ^ data.charCodeAt(i)) & 0xFF;
+    x ^= x >> 4;
+    crc = ((crc << 8) ^ (x << 12) ^ (x << 5) ^ x) & 0xFFFF;
+  }
+  return ('0000' + crc.toString(16).toUpperCase()).slice(-4);
+}
+
+// 👇 ฟังก์ชันสร้างรหัส PromptPay (Payload Generator) - คำนวณเองไม่ง้อเว็บ!
+export const generatePromptPayPayload = (target: string, amount: number) => {
+  const targetClean = target.replace(/[^0-9]/g, '');
+  let targetValue = '';
+  let targetType = '01'; // 01=Mobile, 02=TaxID, 03=EWallet
+
+  // ตรวจสอบว่าเป็น เบอร์โทร (10), บัตร ปชช (13), หรือ E-Wallet (15)
+  if (targetClean.length >= 15) {
+    targetValue = targetClean; // E-Wallet ID
+    targetType = '03';
+  } else if (targetClean.length >= 13) {
+    targetValue = targetClean; // ID Card
+    targetType = '02';
+  } else if (targetClean.length === 10 && targetClean.startsWith('0')) {
+    // เบอร์โทรศัพท์ปกติ: ตัด 0 หน้าสุดออก แล้วเติม 0066
+    targetValue = '0066' + targetClean.substring(1); 
+    targetType = '01';
+  } else {
+    // กรณีอื่นๆ (เช่น เลขบัญชี 173... หรือเบอร์ที่ลืมใส่ 0)
+    // ให้เติม 0066 ไปเลยเพื่อให้โครงสร้าง QR ถูกต้อง (แอปธนาคารจะมองเป็นเบอร์มือถือ)
+    targetValue = '0066' + targetClean;
+    targetType = '01';
+  }
+
+  const targetLenStr = ('00' + targetValue.length).slice(-2);
+  const tag29Value = '0016A000000677010111' + targetType + targetLenStr + targetValue;
+  const tag29Len = ('00' + tag29Value.length).slice(-2);
+  
+  const amountStr = amount.toFixed(2);
+  const amountLen = ('00' + amountStr.length).slice(-2);
+
+  // ประกอบร่างตามมาตรฐาน EMVCo
+  const payload = [
+    '000201', // 00: Version
+    '010211', // 01: Dynamic QR
+    '29' + tag29Len + tag29Value, // 29: Merchant Info
+    '5303764', // 53: Currency THB
+    '54' + amountLen + amountStr, // 54: Amount
+    '5802TH', // 58: Country
+    '6304' // 63: CRC Placeholder
+  ].join('');
+
+  return payload + crc16(payload); // ต่อท้ายด้วย CRC ที่คำนวณได้
+};
+
 export const generatePromptPayQR = (phoneNumber: string, amount: number) => {
-  return `https://promptpay.io/${phoneNumber}/${amount}.png`;
+  // 1. คำนวณรหัส Payload เอง
+  const payload = generatePromptPayPayload(phoneNumber, amount);
+  
+  // 2. ส่งรหัสไปแปลงเป็นรูปภาพ (ใช้ api.qrserver.com ซึ่งเสถียรกว่า promptpay.io มาก)
+  // หมายเหตุ: ถ้าอยากทำแบบ Lazada เป๊ะๆ ต้องลง library 'qrcode' แล้วสั่ง QRCode.toDataURL(payload) ในคอมโพเนนต์ครับ
+  return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(payload)}`;
 };

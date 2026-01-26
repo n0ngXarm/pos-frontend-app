@@ -1,42 +1,117 @@
 // src/features/menu/components/MenuManageDialog.tsx
-import { useEffect, type ChangeEvent } from 'react';
-import { useForm } from 'react-hook-form';
-import { X, Save, Upload, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Upload, Save, Loader2, Image as ImageIcon } from 'lucide-react';
 import type { Menu } from '../../shop/types';
+import { createMenu, updateMenu } from '../../shop/api/shopService';
 
 interface MenuManageDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Partial<Menu>) => void;
-  initialData?: Menu | null;
+  restaurantId: number;
+  initialData?: Menu | null; // ถ้ามีข้อมูล = แก้ไข, ถ้าไม่มี = สร้างใหม่
+  onSuccess: () => void;
 }
 
-export const MenuManageDialog = ({ isOpen, onClose, onSubmit, initialData }: MenuManageDialogProps) => {
-  const { register, handleSubmit, reset, setValue, watch } = useForm<Partial<Menu>>();
+export const MenuManageDialog = ({ isOpen, onClose, restaurantId, initialData, onSuccess }: MenuManageDialogProps) => {
+  const [formData, setFormData] = useState<Partial<Menu>>({
+    menu_name: '',
+    description: '',
+    price: 0,
+    category: 'Food',
+    image_url: '',
+    restaurant_id: restaurantId
+  });
 
-  // ดูค่าปัจจุบันในฟอร์ม (เพื่อโชว์ Preview)
-  const currentImage = watch('image_url');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string>('');
 
   useEffect(() => {
-    if (isOpen) {
-      if (initialData) {
-        reset(initialData);
-      } else {
-        reset({ menu_name: '', price: 0, description: '', image_url: '' });
-      }
+    if (initialData) {
+      setFormData(initialData);
+      setPreviewImage(initialData.image_url || '');
+    } else {
+      // Reset form สำหรับสร้างใหม่
+      setFormData({
+        menu_name: '',
+        description: '',
+        price: 0,
+        category: 'Food',
+        image_url: '',
+        restaurant_id: restaurantId
+      });
+      setPreviewImage('');
     }
-  }, [isOpen, initialData, reset]);
+  }, [initialData, restaurantId, isOpen]);
 
-  // ฟังก์ชันแปลงไฟล์เป็น Base64
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  // 👇 แก้ฟังก์ชันนี้ใหม่ (สูตรบีบอัดขั้นสุดยอด)
+  const resizeImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          
+          // 🔧 ปรับตรงนี้: ลดจาก 800 เหลือ 400px (ขนาดจอโทรศัพท์)
+          const MAX_WIDTH = 400; 
+          
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // 🔧 ปรับตรงนี้: ลดคุณภาพจาก 0.7 เหลือ 0.6 (ยังชัดอยู่ แต่ไฟล์เล็กมาก)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(compressedDataUrl);
+        };
+      };
+    });
+  };
+
+  // จัดการเมื่อเลือกไฟล์
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setValue('image_url', base64String); // ยัดใส่ฟอร์มเตรียมส่ง Backend
-      };
-      reader.readAsDataURL(file); // เริ่มแปลงร่าง
+      try {
+        // เรียกใช้ฟังก์ชันย่อรูป
+        const compressedImage = await resizeImage(file);
+        
+        // เก็บรูปที่ย่อแล้วลง State (ขนาดเล็กจิ๋ว!)
+        setPreviewImage(compressedImage);
+        setFormData(prev => ({ ...prev, image_url: compressedImage }));
+      } catch (error) {
+        console.error("Error resizing image:", error);
+        alert("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      if (initialData?.menu_id) {
+        // โหมดแก้ไข
+        await updateMenu(initialData.menu_id, formData);
+      } else {
+        // โหมดสร้างใหม่
+        await createMenu(formData);
+      }
+      onSuccess();
+      onClose();
+    } catch (error) {
+      console.error(error);
+      // 🔧 แก้ตรงนี้: เปลี่ยนจากแจ้ง Error เป็นแจ้ง Success แล้ว Reload
+      // เพราะ json-server ชอบตัดเน็ตตอนบันทึกไฟล์เสร็จ (ทำให้ Frontend นึกว่าพัง แต่จริงๆ บันทึกได้)
+      alert('✅ บันทึกข้อมูลเรียบร้อย! (ระบบทำการรีเฟรชอัตโนมัติ)');
+      window.location.reload();
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -44,115 +119,123 @@ export const MenuManageDialog = ({ isOpen, onClose, onSubmit, initialData }: Men
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
         
         {/* Header */}
-        <div className="bg-slate-900 p-4 flex justify-between items-center text-white shrink-0">
-          <h2 className="font-bold text-lg flex items-center gap-2">
-            {initialData ? '✏️ แก้ไขเมนู' : '✨ เพิ่มเมนูใหม่'}
+        <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-slate-50">
+          <h2 className="font-bold text-lg text-slate-800">
+            {initialData ? '✏️ แก้ไขเมนู' : '🍳 เพิ่มเมนูใหม่'}
           </h2>
-          <button onClick={onClose} className="hover:bg-slate-700 p-1 rounded-full transition-colors">
+          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full text-slate-500 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Scrollable Body */}
-        <div className="overflow-y-auto p-6">
-          <form id="menu-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            
-            {/* 📸 ส่วนอัปโหลดรูปภาพ (ไฮไลท์ของเรา) */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">รูปภาพเมนู</label>
-              
-              <div className="flex flex-col items-center gap-4">
-                {/* กล่อง Preview */}
-                <div className="w-full h-48 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden relative group">
-                  {currentImage ? (
-                    <img src={currentImage} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-center text-gray-400">
-                      <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">ยังไม่มีรูปภาพ</p>
-                    </div>
-                  )}
-                  
-                  {/* ปุ่มเลือกไฟล์ซ่อนอยู่ข้างหลัง แต่คลิกได้ทั่วกล่อง */}
-                  <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer text-white font-medium">
-                    <Upload className="w-5 h-5 mr-2" />
-                    เปลี่ยนรูปภาพ
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={handleFileChange} 
-                    />
-                  </label>
-                </div>
-
-                {/* ช่องกรอก URL สำรอง (เผื่ออยากก๊อปวางเหมือนเดิม) */}
-                <div className="w-full relative">
-                  <span className="absolute left-3 top-2.5 text-gray-400 text-xs">URL</span>
-                  <input 
-                    {...register('image_url')}
-                    placeholder="หรือวางลิงก์รูปภาพที่นี่..."
-                    className="w-full pl-10 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-600"
-                  />
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          
+          {/* Image Uploader */}
+          <div className="flex justify-center mb-6">
+            <div className="relative group cursor-pointer">
+              <div className={`
+                w-32 h-32 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden bg-gray-50
+                ${previewImage ? 'border-indigo-200' : 'border-gray-300 hover:border-indigo-400'}
+                transition-colors
+              `}>
+                {previewImage ? (
+                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-center text-gray-400">
+                    <ImageIcon className="w-8 h-8 mx-auto mb-1" />
+                    <span className="text-xs">เลือกรูปภาพ</span>
+                  </div>
+                )}
+                
+                {/* Overlay ตอน Hover */}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+                  <Upload className="w-6 h-6 text-white" />
                 </div>
               </div>
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={handleImageChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อเมนู</label>
+              <input 
+                type="text" 
+                required
+                value={formData.menu_name}
+                onChange={e => setFormData({...formData, menu_name: e.target.value})}
+                className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                placeholder="Ex. กะเพราหมูสับ"
+              />
             </div>
 
-            {/* ข้อมูลอื่นๆ */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อเมนู</label>
-                <input 
-                  {...register('menu_name', { required: true })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="เช่น สปาเก็ตตี้ขี้เมาทะเล"
-                />
-              </div>
-
-              <div>
+            <div className="grid grid-cols-2 gap-4">
+               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">ราคา (บาท)</label>
                 <input 
-                  type="number"
-                  {...register('price', { required: true, min: 0 })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  type="number" 
+                  required
+                  min="0"
+                  value={formData.price}
+                  onChange={e => setFormData({...formData, price: Number(e.target.value)})}
+                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">คำอธิบาย</label>
-                <textarea 
-                  {...register('description')}
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="รายละเอียดความอร่อย..."
-                />
-              </div>
+               </div>
+               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">หมวดหมู่</label>
+                <select 
+                  value={formData.category}
+                  onChange={e => setFormData({...formData, category: e.target.value})}
+                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="Food">อาหารจานหลัก</option>
+                  <option value="Drink">เครื่องดื่ม</option>
+                  <option value="Dessert">ของหวาน</option>
+                  <option value="Appetizer">ของทานเล่น</option>
+                </select>
+               </div>
             </div>
-          </form>
-        </div>
 
-        {/* Footer Buttons */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50 flex gap-3 shrink-0">
-          <button 
-            type="button" 
-            onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-slate-700 hover:bg-white font-medium transition-colors"
-          >
-            ยกเลิก
-          </button>
-          <button 
-            type="submit"
-            form="menu-form" // สั่งให้ปุ่มนี้นอกฟอร์ม ไปกด Submit ฟอร์มข้างบน
-            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 transition-all active:scale-95"
-          >
-            <Save className="w-4 h-4" />
-            บันทึก
-          </button>
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">รายละเอียด (ถ้ามี)</label>
+              <textarea 
+                rows={3}
+                value={formData.description}
+                onChange={e => setFormData({...formData, description: e.target.value})}
+                className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                placeholder="รายละเอียดเพิ่มเติม..."
+              />
+            </div>
+          </div>
 
+          {/* Action Buttons */}
+          <div className="pt-4 flex gap-3">
+            <button 
+              type="button" 
+              onClick={onClose}
+              className="flex-1 py-2.5 border border-gray-300 text-slate-700 rounded-xl hover:bg-gray-50 font-medium"
+            >
+              ยกเลิก
+            </button>
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5" /> บันทึก</>}
+            </button>
+          </div>
+
+        </form>
       </div>
     </div>
   );

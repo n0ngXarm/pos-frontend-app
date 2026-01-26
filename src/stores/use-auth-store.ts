@@ -6,6 +6,8 @@ interface User {
   id: string;
   username: string;
   role: 'ADMIN' | 'USER';
+  name?: string;       // เพิ่มชื่อ
+  avatar_url?: string; // เพิ่มรูปโปรไฟล์
 }
 
 interface AuthState {
