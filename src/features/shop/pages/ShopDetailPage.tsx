@@ -63,11 +63,11 @@ export const ShopDetailPage = () => {
         <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800">ไม่พบข้อมูลร้านค้า</h2>
-        <p className="text-slate-500 mb-6">ร้านที่คุณตามหาอาจถูกลบหรือไม่มีอยู่จริง</p>
+        <h2 className="text-2xl font-bold text-gray-800">ไม่พบข้อมูลร้านค้า</h2>
+        <p className="text-gray-500 mb-6">ร้านที่คุณตามหาอาจถูกลบหรือไม่มีอยู่จริง</p>
         <button 
             onClick={() => navigate('/shops')} 
-            className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
         >
           กลับไปเลือกร้านใหม่
         </button>
@@ -79,30 +79,30 @@ export const ShopDetailPage = () => {
   return (
     <div className="space-y-6 pb-20">
       {/* 🖼️ Header ร้านค้าแบบอลังการ */}
-      <div className="relative bg-white rounded-3xl shadow-lg overflow-hidden group">
+      <div className="relative bg-gray-900 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden group h-[250px] md:h-[400px] flex items-end">
         {/* Background Image (Blurred) */}
         <div 
-          className="absolute inset-0 bg-cover bg-center blur-sm opacity-30 group-hover:scale-105 transition-transform duration-700"
+          className="absolute inset-0 bg-cover bg-center opacity-60 group-hover:scale-110 transition-transform duration-[2s]"
           style={{ backgroundImage: `url(${shop.image_url || "https://placehold.co/600x200"})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent"></div>
 
-        <div className="relative p-8 flex flex-col md:flex-row items-center gap-6">
+        <div className="relative p-6 md:p-12 flex flex-col md:flex-row items-end gap-6 w-full">
         <button 
             onClick={() => navigate('/shops')} 
-            className="absolute top-4 left-4 p-2 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full shadow-sm z-10 text-slate-600 transition-all hover:scale-110"
+            className="absolute top-4 left-4 md:top-6 md:left-6 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full shadow-lg z-10 text-white transition-all hover:scale-110 border border-white/20"
         >
             <ArrowLeft className="w-5 h-5" />
         </button>
 
         <img 
           src={shop.image_url || "https://placehold.co/100"} 
-          className="w-32 h-32 rounded-2xl object-cover shadow-xl rotate-3 border-4 border-white bg-white shrink-0"
+          className="w-24 h-24 md:w-32 md:h-32 rounded-3xl object-cover shadow-2xl rotate-3 border-4 border-white/20 bg-gray-800 shrink-0 hidden md:block"
         />
         
         <div className="text-center md:text-left flex-1">
-          <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">{shop.restaurant_name}</h1>
-          <div className="flex flex-col md:flex-row gap-4 text-slate-500 text-sm justify-center md:justify-start">
+          <h1 className="text-3xl md:text-6xl font-black text-white mb-3 tracking-tight drop-shadow-lg">{shop.restaurant_name}</h1>
+          <div className="flex flex-col md:flex-row gap-4 text-gray-300 text-sm justify-center md:justify-start font-medium">
             <div className="flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-amber-500" /> 
                 <span>{shop.address}</span>
@@ -118,8 +118,8 @@ export const ShopDetailPage = () => {
 
       {/* รายการเมนู */}
       <div>
-        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span className="w-2 h-8 bg-blue-600 rounded-full"></span>
+        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="w-2 h-8 bg-gradient-to-b from-blue-900 to-gray-700 rounded-full"></span>
             เมนูแนะนำ
         </h2>
         
@@ -136,7 +136,7 @@ export const ShopDetailPage = () => {
                 />
             ))
             ) : (
-            <div className="col-span-full py-16 text-center bg-white rounded-xl border border-dashed border-gray-200 text-slate-400">
+            <div className="col-span-full py-16 text-center bg-white rounded-xl border border-dashed border-gray-200 text-gray-400">
                 <ShoppingBag className="w-16 h-16 mx-auto mb-3 opacity-20" />
                 <p className="text-lg font-medium">ร้านนี้ยังไม่มีเมนูอาหาร</p>
                 <p className="text-sm opacity-70">แวะมาดูใหม่วันหลังนะ</p>

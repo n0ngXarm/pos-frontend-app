@@ -52,8 +52,8 @@ export const LoginForm = () => {
   return (
     <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg border border-gray-100">
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">เข้าสู่ระบบ</h1>
-        <p className="text-slate-500 mt-2">จัดการร้านค้าและออเดอร์ของคุณ</p>
+        <h1 className="text-2xl font-bold text-gray-900">เข้าสู่ระบบ</h1>
+        <p className="text-gray-500 mt-2">จัดการร้านค้าและออเดอร์ของคุณ</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -66,11 +66,11 @@ export const LoginForm = () => {
 
         {/* Username */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">ชื่อผู้ใช้</label>
+          <label className="text-sm font-medium text-gray-700">ชื่อผู้ใช้</label>
           <input
             {...register('username')}
             disabled={isLoading}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-900 outline-none transition-all ${
               errors.username ? 'border-red-500 bg-red-50' : 'border-gray-200'
             }`}
             placeholder="กรอกชื่อผู้ใช้"
@@ -82,12 +82,12 @@ export const LoginForm = () => {
 
         {/* Password */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">รหัสผ่าน</label>
+          <label className="text-sm font-medium text-gray-700">รหัสผ่าน</label>
           <input
             type="password"
             {...register('password')}
             disabled={isLoading}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-900 outline-none transition-all ${
               errors.password ? 'border-red-500 bg-red-50' : 'border-gray-200'
             }`}
             placeholder="••••••••"
@@ -101,7 +101,7 @@ export const LoginForm = () => {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
+          className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>

@@ -123,7 +123,7 @@ export const MenuManageDialog = ({ isOpen, onClose, restaurantId, initialData, o
         
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-slate-50">
-          <h2 className="font-bold text-lg text-slate-800">
+          <h2 className="font-bold text-lg text-gray-800">
             {initialData ? '✏️ แก้ไขเมนู' : '🍳 เพิ่มเมนูใหม่'}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full text-slate-500 transition-colors">
@@ -139,7 +139,7 @@ export const MenuManageDialog = ({ isOpen, onClose, restaurantId, initialData, o
             <div className="relative group cursor-pointer">
               <div className={`
                 w-32 h-32 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden bg-gray-50
-                ${previewImage ? 'border-indigo-200' : 'border-gray-300 hover:border-indigo-400'}
+                ${previewImage ? 'border-blue-200' : 'border-gray-300 hover:border-blue-400'}
                 transition-colors
               `}>
                 {previewImage ? (
@@ -167,35 +167,35 @@ export const MenuManageDialog = ({ isOpen, onClose, restaurantId, initialData, o
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อเมนู</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อเมนู</label>
               <input 
                 type="text" 
                 required
                 value={formData.menu_name}
                 onChange={e => setFormData({...formData, menu_name: e.target.value})}
-                className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-transparent outline-none transition-all"
                 placeholder="Ex. กะเพราหมูสับ"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">ราคา (บาท)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ราคา (บาท)</label>
                 <input 
                   type="number" 
                   required
                   min="0"
                   value={formData.price}
                   onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-900 outline-none"
                 />
                </div>
                <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">หมวดหมู่</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
                 <select 
                   value={formData.category}
                   onChange={e => setFormData({...formData, category: e.target.value})}
-                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-900 outline-none"
                 >
                   <option value="Food">อาหารจานหลัก</option>
                   <option value="Drink">เครื่องดื่ม</option>
@@ -206,12 +206,12 @@ export const MenuManageDialog = ({ isOpen, onClose, restaurantId, initialData, o
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">รายละเอียด (ถ้ามี)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด (ถ้ามี)</label>
               <textarea 
                 rows={3}
                 value={formData.description}
                 onChange={e => setFormData({...formData, description: e.target.value})}
-                className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-900 outline-none resize-none"
                 placeholder="รายละเอียดเพิ่มเติม..."
               />
             </div>
@@ -222,14 +222,14 @@ export const MenuManageDialog = ({ isOpen, onClose, restaurantId, initialData, o
             <button 
               type="button" 
               onClick={onClose}
-              className="flex-1 py-2.5 border border-gray-300 text-slate-700 rounded-xl hover:bg-gray-50 font-medium"
+              className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium"
             >
               ยกเลิก
             </button>
             <button 
               type="submit" 
               disabled={isSubmitting}
-              className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 disabled:opacity-70"
+              className="flex-1 py-2.5 bg-blue-900 text-white rounded-xl hover:bg-blue-800 font-bold shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5" /> บันทึก</>}
             </button>

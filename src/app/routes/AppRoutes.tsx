@@ -10,6 +10,7 @@ import { AdminShopListPage } from '../../features/admin/pages/AdminShopListPage'
 import { AdminMenuManagePage } from '../../features/admin/pages/AdminMenuManagePage';
 import { AdminOrderPage } from '../../features/admin/pages/AdminOrderPage';
 import { CartPage } from '../../features/shop/pages/CartPage';
+import { OrderHistoryPage } from '../../features/order/pages/OrderHistoryPage';
 import { DashboardLayout } from '../../components/layouts/DashboardLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PaymentPage } from '../../features/shop/api/PaymentPage';
@@ -47,12 +48,14 @@ export const AppRoutes = () => {
               <Route path="/shops" element={<ShopListPage />} />
               <Route path="/shops/:id" element={<ShopDetailPage />} />
               <Route path="/cart" element={<CartPage />} />
+              <Route path="/orders" element={<OrderHistoryPage />} />
               <Route path="/payment/:orderId" element={<PaymentPage />} />
             </>
           )}
 
-          {/* ✅ ใช้ได้ทั้งคู่ */}
+          {/* ✅ Settings Page (ใช้ได้ทั้งคู่) */}
           <Route path="/settings" element={<SettingsPage />} />
+          {user?.role === 'ADMIN' && <Route path="/settings/:userId" element={<SettingsPage />} />}
 
         </Route>
       </Route>

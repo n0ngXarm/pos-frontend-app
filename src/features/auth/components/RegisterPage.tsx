@@ -50,20 +50,20 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-blue-900 to-stone-900 p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900 p-4 relative overflow-hidden">
       {/* 🎨 Background Decorations */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-10 right-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-10 right-10 w-72 h-72 bg-blue-900/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 relative z-10">
         <div className="p-8 pb-0 text-center">
-          <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-slate-700 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-4 -rotate-3">
+          <div className="w-16 h-16 bg-gradient-to-tr from-blue-900 to-gray-800 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-4 -rotate-3">
             <UserPlus className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-black text-slate-800">สร้างบัญชีใหม่</h1>
-          <p className="text-slate-500 text-sm mt-1">เข้าร่วมกับเราเพื่อสั่งอาหารจานโปรด</p>
+          <h1 className="text-2xl font-black text-gray-800">สร้างบัญชีใหม่</h1>
+          <p className="text-gray-500 text-sm mt-1">เข้าร่วมกับเราเพื่อสั่งอาหารจานโปรด</p>
         </div>
 
         <div className="p-8">
@@ -75,34 +75,34 @@ export const RegisterPage = () => {
             )}
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-600 ml-1 uppercase">ชื่อ-นามสกุล</label>
+              <label className="text-xs font-bold text-gray-600 ml-1 uppercase">ชื่อ-นามสกุล</label>
               <div className="relative">
-                <Store className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input name="fullname" type="text" required placeholder="สมชาย ใจดี" onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition-all" />
+                <Store className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input name="fullname" type="text" required placeholder="สมชาย ใจดี" onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 outline-none transition-all" />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-600 ml-1 uppercase">ชื่อผู้ใช้</label>
+              <label className="text-xs font-bold text-gray-600 ml-1 uppercase">ชื่อผู้ใช้</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input name="username" type="text" required placeholder="username" onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition-all" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input name="username" type="text" required placeholder="username" onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 outline-none transition-all" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 ml-1 uppercase">รหัสผ่าน</label>
+                <label className="text-xs font-bold text-gray-600 ml-1 uppercase">รหัสผ่าน</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input name="password" type="password" required placeholder="••••••" onChange={handleChange} className="w-full pl-9 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition-all text-sm" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input name="password" type="password" required placeholder="••••••" onChange={handleChange} className="w-full pl-9 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 outline-none transition-all text-sm" />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 ml-1 uppercase">ยืนยันรหัส</label>
+                <label className="text-xs font-bold text-gray-600 ml-1 uppercase">ยืนยันรหัส</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input name="confirmPassword" type="password" required placeholder="••••••" onChange={handleChange} className="w-full pl-9 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition-all text-sm" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input name="confirmPassword" type="password" required placeholder="••••••" onChange={handleChange} className="w-full pl-9 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 outline-none transition-all text-sm" />
                 </div>
               </div>
             </div>
@@ -110,7 +110,7 @@ export const RegisterPage = () => {
             <button 
               type="submit" 
               disabled={isLoading}
-              className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg hover:bg-slate-800 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
+              className="w-full bg-gray-900 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg hover:bg-gray-800 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
             >
               {isLoading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
