@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Search, ChefHat } from 'lucide-react';
+import { Loader2, Search, ChefHat, Sparkles, TrendingUp } from 'lucide-react';
 import { getRestaurants } from '../api/shopService';
 import type { Restaurant } from '../types';
 import { ShopCard } from '../components/ShopCard';
@@ -13,13 +13,24 @@ export const ShopListPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
+  const [isExiting, setIsExiting] = useState(false);
 
   const fetchRestaurants = async () => {
     setIsLoading(true);
     setError(null);
     try {
+      console.log("Fetching restaurants..."); // 👈 เพิ่ม Log 1
       const data = await getRestaurants();
-      setRestaurants(data);
+      
+      // ✅ แก้ไข: เช็คว่าเป็น Array จริงไหม ถ้าไม่ใช่ให้เป็น [] กันจอขาว
+      console.log("API Response:", data); // ดูข้อมูลดิบใน Console
+      if (Array.isArray(data)) {
+        setRestaurants(data);
+      } else {
+        console.warn("API did not return an array:", data);
+        setRestaurants([]);
+      }
     } catch (err) {
       console.error(err);
       setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
@@ -32,9 +43,28 @@ export const ShopListPage = () => {
     fetchRestaurants();
   }, []);
 
-  const filteredRestaurants = restaurants.filter(shop => 
-    shop.restaurant_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  console.log("Rendering ShopList, Restaurants:", restaurants); // 👈 เพิ่ม Log 2
+
+  const categories = ["ทั้งหมด", "อาหารตามสั่ง", "ก๋วยเตี๋ยว", "เครื่องดื่ม", "ของหวาน", "Fast Food", "Bakery"];
+
+  // ✅ แก้ไข: กันตายอีกรอบตอน Render
+  const safeRestaurants = Array.isArray(restaurants) ? restaurants : [];
+  const filteredRestaurants = safeRestaurants
+    .filter(shop => shop && typeof shop === 'object') // 🛡️ กรองร้านที่เป็น null ทิ้งก่อน
+    .filter(shop => {
+      const matchesSearch = (shop.restaurant_name || "").toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'ทั้งหมด' 
+        ? true 
+        : (shop as any).category === selectedCategory || (shop.restaurant_name || "").includes(selectedCategory);
+      return matchesSearch && matchesCategory;
+    });
+
+  const handleShopClick = (id: number) => {
+    setIsExiting(true);
+    setTimeout(() => {
+      navigate(`/shops/${id}`);
+    }, 400);
+  };
 
   if (isLoading) {
     return (
@@ -45,27 +75,47 @@ export const ShopListPage = () => {
   }
 
   return (
-    <div className="space-y-8 pb-32">
-      {/* 🌟 Hero Section (Modern) */}
-      <div className="relative rounded-[2rem] md:rounded-[2.5rem] overflow-hidden bg-gray-900 text-white p-6 md:p-20 shadow-2xl shadow-amber-200/20 group">
-        {/* Abstract Background */}
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center opacity-50 mix-blend-overlay group-hover:scale-105 transition-transform duration-[2s]"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-blue-900/90 to-gray-900/40"></div>
+    <div className={`space-y-8 pb-32 transition-all duration-500 ease-in-out ${isExiting ? 'opacity-0 scale-95 translate-y-4 filter blur-sm' : 'opacity-100 scale-100 translate-y-0 blur-0'}`}>
+      {/* 🌟 Hero Section (Clean & Friendly) */}
+      <div className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-900 text-white p-8 md:p-16 shadow-2xl shadow-blue-900/30 group">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/20 rounded-full blur-[100px] -mr-20 -mt-20 animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/20 rounded-full blur-[80px] -ml-10 -mb-10"></div>
         
         <div className="relative z-10 max-w-2xl">
-          <span className="inline-block px-4 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 text-amber-300 text-xs font-bold rounded-full mb-6 tracking-widest uppercase shadow-lg">Premium Selection</span>
-          <h1 className="text-3xl md:text-5xl lg:text-7xl font-black mb-6 leading-tight tracking-tight drop-shadow-lg">
-            Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-600">Golden</span><br/>Taste & Quality
+          <div className="flex items-center gap-2 mb-6">
+             <span className="inline-flex items-center gap-1 px-4 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 text-amber-300 text-xs font-bold rounded-full tracking-widest uppercase shadow-lg">
+                <Sparkles className="w-3 h-3" /> Premium Selection
+             </span>
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight tracking-tight drop-shadow-lg">
+            ค้นพบความอร่อย <br/><span className="text-amber-400">จากร้านค้าชั้นนำ</span>
           </h1>
-          <p className="text-lg md:text-xl text-gray-200 mb-8 font-light max-w-lg leading-relaxed">
-            สั่งอาหารจากร้านโปรดของคุณได้ง่ายๆ ผ่านมือถือ พร้อมเสิร์ฟความอร่อยถึงโต๊ะ
+          <p className="text-lg text-blue-100 mb-0 font-light max-w-lg">
+            สั่งง่าย จ่ายสะดวก พร้อมเสิร์ฟถึงโต๊ะคุณ
           </p>
         </div>
       </div>
 
+      {/* 🏷️ Categories Filter */}
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-6 py-3 rounded-full whitespace-nowrap transition-all font-bold text-sm border shadow-sm ${
+              selectedCategory === cat 
+                ? 'bg-blue-900 text-white border-blue-900 shadow-lg shadow-blue-900/30 scale-105 ring-2 ring-blue-200' 
+                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-200 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 hover:text-blue-900'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <span className="bg-blue-50 text-blue-900 p-2 rounded-lg">🏪</span> ร้านอาหารแนะนำ
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+          <span className="bg-blue-100 p-2 rounded-xl"><TrendingUp className="w-6 h-6 text-blue-900" /></span> ร้านอาหารแนะนำ
         </h2>
         
         {/* 👇 เช็คสิทธิ์ก่อนโชว์: ต้องเป็น ADMIN เท่านั้นถึงจะเห็นปุ่มนี้ */}
@@ -79,13 +129,13 @@ export const ShopListPage = () => {
         )}
 
         <div className="relative w-full md:w-64">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
           <input 
             type="text"
             placeholder="Search restaurants..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-6 py-3.5 rounded-2xl border-none bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)] focus:ring-4 focus:ring-blue-100 focus:shadow-lg transition-all placeholder:text-gray-300 text-gray-600 font-medium"
+            className="w-full pl-12 pr-6 py-3.5 rounded-2xl border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-300 focus:shadow-xl transition-all placeholder:text-gray-400 dark:placeholder-slate-500 text-gray-800 dark:text-white font-medium"
           />
         </div>
       </div>
@@ -103,16 +153,21 @@ export const ShopListPage = () => {
       )}
 
       {!error && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredRestaurants.map((shop) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+          {filteredRestaurants.map((shop, index) => {
             if (!shop.restaurant_id) return null;
 
             return (
-              <ShopCard 
+              <div 
                 key={shop.restaurant_id} 
-                data={shop} 
-                onClick={() => navigate(`/shops/${shop.restaurant_id}`)} 
-              />
+                className="animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-backwards"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <ShopCard 
+                    data={shop} 
+                    onClick={() => handleShopClick(shop.restaurant_id)} 
+                />
+              </div>
             );
           })}
           

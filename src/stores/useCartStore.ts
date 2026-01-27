@@ -26,12 +26,13 @@ export const useCartStore = create<CartState>()(
       restaurantId: null,
 
       addItem: (menu) => {
-        const currentItems = get().items;
+        let currentItems = get().items || []; // 🛡️ เปลี่ยน const เป็น let เพื่อให้แก้ไขค่าได้
         const currentRestId = get().restaurantId;
 
         if (currentRestId && currentRestId !== menu.restaurant_id) {
           if (!confirm('คุณกำลังสั่งอาหารจากร้านใหม่ ตะกร้าเดิมจะถูกล้าง ยืนยันไหม?')) return;
-          set({ items: [], restaurantId: null });
+          // ✅ แก้ไข: ล้างตัวแปร local ด้วย เพื่อให้ logic ข้างล่างรู้ว่าตะกร้าว่างแล้ว
+          currentItems = []; 
         }
 
         const existingItem = currentItems.find(item => item.menu_id === menu.menu_id);

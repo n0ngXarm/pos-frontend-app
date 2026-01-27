@@ -15,11 +15,17 @@ import { DashboardLayout } from '../../components/layouts/DashboardLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PaymentPage } from '../../features/shop/api/PaymentPage';
 import { SettingsPage } from '../../stores/SettingsPage'; // ✅ Import
+import { MyShopRedirect } from '../../features/shop/pages/MyShopRedirect'; // ✅ Import
+import { RegisterShopPage } from '../../features/shop/pages/RegisterShopPage'; // ✅ Import
+import { ShopDashboardPage } from '../../features/shop/pages/ShopDashboardPage'; // ✅ Import
 
 export const AppRoutes = () => {
   const { user } = useAuthStore();
 
   const getHomeRoute = () => {
+    // 🛑 แก้ตรงนี้: ถ้ายังไม่ล็อกอิน ให้ไปหน้า Login ก่อนเสมอ
+    if (!user) return '/login';
+
     if (user?.role === 'ADMIN') return '/admin/shops';
     return '/shops';
   };
@@ -50,6 +56,12 @@ export const AppRoutes = () => {
               <Route path="/cart" element={<CartPage />} />
               <Route path="/orders" element={<OrderHistoryPage />} />
               <Route path="/payment/:orderId" element={<PaymentPage />} />
+              
+              {/* ✅ Route พิเศษสำหรับ User Plus */}
+              <Route path="/my-shop" element={<MyShopRedirect />} />
+              <Route path="/my-shop/dashboard" element={<ShopDashboardPage />} />
+              <Route path="/register-shop" element={<RegisterShopPage />} />
+              <Route path="/shops/:id/manage" element={<AdminMenuManagePage />} />
             </>
           )}
 

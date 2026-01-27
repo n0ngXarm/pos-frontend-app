@@ -11,6 +11,8 @@ export interface CreateOrderPayload {
   total_price: number;
   order_status: string;
   order_date: string; // ส่งเป็น string ISO format
+  payment_method?: string; // ✅ เพิ่ม: วิธีการชำระเงิน
+  slip_url?: string | null; // ✅ เพิ่ม: ลิงก์สลิป
 }
 
 // ดึงร้านค้าทั้งหมด
@@ -26,9 +28,9 @@ export const createRestaurant = async (restaurantData: Partial<Restaurant>) => {
 };
 
 // 👇 จุดแก้ที่ 1: เพิ่ม "ยามเฝ้าประตู"
-export const getRestaurantById = async (id: string): Promise<Restaurant | null> => {
+export const getRestaurantById = async (id: number | string): Promise<Restaurant | null> => {
   // ถ้าไม่มีบัตร (ID เสีย) ห้ามผ่าน!
-  if (!id || id === 'undefined' || id === 'null') {
+  if (!id || String(id) === 'undefined' || String(id) === 'null') {
     return null; 
   }
 
@@ -42,15 +44,15 @@ export const getRestaurantById = async (id: string): Promise<Restaurant | null> 
 };
 
 // 👇 จุดแก้ที่ 2: ดักตรงเมนูด้วย
-export const getMenusByRestaurantId = async (restaurantId: string): Promise<Menu[]> => {
-  if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null') {
+export const getMenusByRestaurantId = async (restaurantId: number | string): Promise<Menu[]> => {
+  if (!restaurantId || String(restaurantId) === 'undefined' || String(restaurantId) === 'null') {
     return []; // คืนจานเปล่าไปเลย เร็วปรู๊ด!
   }
 
   try {
     const { data } = await api.get<Menu[]>('/menus');
     // กรองเฉพาะของร้านนี้ (ท่าไม้ตายแก้ 404)
-    return data.filter(menu => menu.restaurant_id === Number(restaurantId));
+    return data.filter(menu => Number(menu.restaurant_id) === Number(restaurantId));
   } catch (error) {
     return [];
   }
@@ -58,13 +60,22 @@ export const getMenusByRestaurantId = async (restaurantId: string): Promise<Menu
 
 // 1. สร้างเมนูใหม่ (POST)
 export const createMenu = async (menuData: Partial<Menu>): Promise<Menu> => {
-  const { data } = await api.post<Menu>('/menus', menuData);
+  const payload = {
+    ...menuData,
+    price: Number(menuData.price) || 0, // ✅ แปลงเป็นตัวเลขเสมอ
+    restaurant_id: Number(menuData.restaurant_id)
+  };
+  const { data } = await api.post<Menu>('/menus', payload);
   return data;
 };
 
 // 2. แก้ไขเมนูเดิม (PUT)
 export const updateMenu = async (menuId: number, menuData: Partial<Menu>): Promise<Menu> => {
-  const { data } = await api.put<Menu>(`/menus/${menuId}`, menuData);
+  const payload = {
+    ...menuData,
+    price: Number(menuData.price) || 0 // ✅ แปลงเป็นตัวเลขเสมอ
+  };
+  const { data } = await api.put<Menu>(`/menus/${menuId}`, payload);
   return data;
 };
 

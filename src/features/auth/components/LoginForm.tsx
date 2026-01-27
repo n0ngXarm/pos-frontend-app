@@ -34,7 +34,7 @@ export const LoginForm = () => {
       const response = await loginWithUsername(data);
       
       // 2. เก็บลง Store (Auto save ลง LocalStorage)
-      setAuth(response.user, response.token);
+      setAuth(response.user, response.token, response.refreshToken);
       
       // 3. เปลี่ยนหน้า (เดี๋ยวเราไปทำ Router กันต่อ)
       alert(`ยินดีต้อนรับ ${response.user.username}! (Login สำเร็จ)`);

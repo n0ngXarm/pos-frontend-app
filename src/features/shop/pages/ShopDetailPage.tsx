@@ -1,10 +1,10 @@
 // src/features/shop/pages/ShopDetailPage.tsx
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingBag, MapPin, Phone, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, MapPin, Phone, AlertCircle, Star, Utensils } from 'lucide-react';
 import { getRestaurantById, getMenusByRestaurantId } from '../api/shopService';
 import type { Restaurant, Menu } from '../types';
-import { MenuCard } from '../../menu/components/MenuCard';
+import { MenuCard } from '../components/MenuCard';
 import { useCartStore } from '../../../stores/useCartStore';
 
 export const ShopDetailPage = () => {
@@ -28,9 +28,13 @@ export const ShopDetailPage = () => {
       setIsLoading(true); // เริ่มหมุนติ้วๆ
       try {
         const [shopData, menusData] = await Promise.all([
-          getRestaurantById(id),
-          getMenusByRestaurantId(id)
+          getRestaurantById(Number(id)),
+          getMenusByRestaurantId(Number(id))
         ]);
+
+        // ✅ เพิ่ม Log เพื่อตรวจสอบข้อมูล (กด F12 ดูที่ Console)
+        console.log("Shop Data:", shopData);
+        console.log("Menus Data:", menusData);
 
         if (shopData) setShop(shopData);
         if (menusData) setMenus(menusData);
@@ -77,39 +81,49 @@ export const ShopDetailPage = () => {
 
   // ✅ Success State: แสดงผลปกติ
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-20 animate-[slideUp_0.6s_cubic-bezier(0.16,1,0.3,1)]">
+      <style>{`
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(40px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
       {/* 🖼️ Header ร้านค้าแบบอลังการ */}
-      <div className="relative bg-gray-900 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden group h-[250px] md:h-[400px] flex items-end">
+      <div className="relative bg-gray-900 rounded-[2.5rem] shadow-2xl shadow-gray-900/30 overflow-hidden group h-[300px] md:h-[400px] flex items-end">
         {/* Background Image (Blurred) */}
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-60 group-hover:scale-110 transition-transform duration-[2s]"
           style={{ backgroundImage: `url(${shop.image_url || "https://placehold.co/600x200"})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-900/80 to-transparent"></div>
 
         <div className="relative p-6 md:p-12 flex flex-col md:flex-row items-end gap-6 w-full">
         <button 
             onClick={() => navigate('/shops')} 
-            className="absolute top-4 left-4 md:top-6 md:left-6 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full shadow-lg z-10 text-white transition-all hover:scale-110 border border-white/20"
+            className="absolute top-4 left-4 md:top-6 md:left-6 p-3 bg-black/20 hover:bg-black/40 backdrop-blur-xl rounded-full shadow-lg z-10 text-white transition-all hover:scale-110 border border-white/10"
         >
             <ArrowLeft className="w-5 h-5" />
         </button>
 
         <img 
           src={shop.image_url || "https://placehold.co/100"} 
-          className="w-24 h-24 md:w-32 md:h-32 rounded-3xl object-cover shadow-2xl rotate-3 border-4 border-white/20 bg-gray-800 shrink-0 hidden md:block"
+          className="w-28 h-28 md:w-40 md:h-40 rounded-3xl object-cover shadow-2xl border-4 border-white/10 bg-gray-800 shrink-0 hidden md:block backdrop-blur-sm"
         />
         
         <div className="text-center md:text-left flex-1">
-          <h1 className="text-3xl md:text-6xl font-black text-white mb-3 tracking-tight drop-shadow-lg">{shop.restaurant_name}</h1>
+          <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+             <span className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-amber-500/20"><Star className="w-3 h-3 fill-current" /> 4.8</span>
+             <span className="bg-green-500/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">Open Now</span>
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black text-white mb-3 tracking-tight drop-shadow-2xl">{shop.restaurant_name || "Unknown Restaurant"}</h1>
           <div className="flex flex-col md:flex-row gap-4 text-gray-300 text-sm justify-center md:justify-start font-medium">
             <div className="flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-amber-500" /> 
-                <span>{shop.address}</span>
+                <span>{shop.address || "-"}</span>
             </div>
             <div className="flex items-center gap-1.5">
                 <Phone className="w-4 h-4 text-amber-500" /> 
-                <span>{shop.phone}</span>
+                <span>{shop.phone || "-"}</span>
             </div>
           </div>
         </div>
@@ -118,14 +132,18 @@ export const ShopDetailPage = () => {
 
       {/* รายการเมนู */}
       <div>
-        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span className="w-2 h-8 bg-gradient-to-b from-blue-900 to-gray-700 rounded-full"></span>
-            เมนูแนะนำ
-        </h2>
+        <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-100 rounded-xl text-blue-900">
+                <Utensils className="w-6 h-6" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">เมนูแนะนำ</h2>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {menus.length > 0 ? (
-            menus.map((menu) => (
+            {Array.isArray(menus) && menus.length > 0 ? (
+            menus
+                .filter(menu => menu && typeof menu === 'object') // 🛡️ กรองเมนูขยะทิ้ง
+                .map((menu) => (
                 <MenuCard 
                     key={menu.menu_id} 
                     data={menu} 
@@ -136,9 +154,9 @@ export const ShopDetailPage = () => {
                 />
             ))
             ) : (
-            <div className="col-span-full py-16 text-center bg-white rounded-xl border border-dashed border-gray-200 text-gray-400">
+            <div className="col-span-full py-16 text-center bg-white dark:bg-slate-800 rounded-xl border border-dashed border-gray-200 dark:border-slate-700 text-gray-400 dark:text-slate-500">
                 <ShoppingBag className="w-16 h-16 mx-auto mb-3 opacity-20" />
-                <p className="text-lg font-medium">ร้านนี้ยังไม่มีเมนูอาหาร</p>
+                <p className="text-lg font-medium text-gray-600 dark:text-slate-400">ร้านนี้ยังไม่มีเมนูอาหาร</p>
                 <p className="text-sm opacity-70">แวะมาดูใหม่วันหลังนะ</p>
             </div>
             )}

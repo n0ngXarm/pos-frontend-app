@@ -19,7 +19,7 @@ export const LoginPage = () => {
     setError(null);
     try {
       const response = await loginWithUsername({ username, password });
-      setAuth(response.user, response.token);
+      setAuth(response.user, response.token, response.refreshToken);
       // Redirect based on role
       const target = response.user.role === 'ADMIN' ? '/admin/shops' : '/shops';
       navigate(target);
@@ -39,7 +39,7 @@ export const LoginPage = () => {
         <div className="absolute -bottom-[20%] left-[20%] w-[800px] h-[800px] bg-amber-600/10 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="w-full max-w-md bg-white/10 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 relative z-10">
+      <div className="w-full max-w-md glass-panel bg-white/10 rounded-[2.5rem] overflow-hidden relative z-10">
         {/* Header */}
         <div className="p-10 pb-0 text-center relative overflow-hidden">
           <div className="relative z-10">
