@@ -1,7 +1,10 @@
 // src/components/layouts/DashboardLayout.tsx
 import { useEffect, useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { Store, ShoppingBag, LogOut, ChefHat, Settings, Clock, User as UserIcon, Sun, Moon, Wallet, FileText, CheckCircle2, X, AlertTriangle, Search, ChevronRight, ShieldCheck, CreditCard, Sparkles, Menu } from 'lucide-react';
+import { 
+  Store, ShoppingBag, LogOut, ChefHat, Settings, Clock, User as UserIcon, Sun, Moon, Wallet, 
+  CheckCircle2, X, Search, ChevronRight, ShieldCheck, Sparkles, LayoutDashboard, ChevronLeft, Bell
+} from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { useCartStore } from '../../stores/useCartStore';
 import { ToastContainer } from '../ui/ToastContainer';
@@ -24,6 +27,7 @@ export const DashboardLayout = () => {
 
   // State
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // 🧱 Sidebar Collapse State
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [balance, setBalance] = useState(0);
@@ -31,10 +35,16 @@ export const DashboardLayout = () => {
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
 
+  const isAdmin = user?.role === 'ADMIN';
+
   // Initial Theme Setup
   useEffect(() => {
-    setIsDarkMode(user?.role !== 'USER');
-  }, [user?.role]);
+    if (isAdmin) {
+        setIsDarkMode(true); // Admin บังคับ Dark Mode
+    } else {
+        setIsDarkMode(user?.role !== 'USER');
+    }
+  }, [user?.role, isAdmin]);
 
   // Sync User Status
   useEffect(() => {
@@ -121,6 +131,7 @@ export const DashboardLayout = () => {
 
   // Navigation Items
   const adminNavItems = [
+    { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { label: 'จัดการร้านค้า', href: '/admin/shops', icon: Store },
     { label: 'ออเดอร์', href: '/admin/orders', icon: ChefHat },
     { label: 'ตั้งค่า', href: '/settings', icon: Settings },
@@ -133,11 +144,13 @@ export const DashboardLayout = () => {
     ...(user?.is_plus_member ? [
       { label: 'ร้านของฉัน', href: '/my-shop', icon: ChefHat },
       { label: 'ถอนเงิน', icon: Wallet, onClick: () => setShowWithdrawModal(true) }
-    ] : []),
+    ] : [
+      { label: 'สมัคร User Plus', href: '/settings', icon: Sparkles }
+    ]),
     { label: 'ตั้งค่า', href: '/settings', icon: Settings },
   ];
 
-  const navItems = user?.role === 'ADMIN' ? adminNavItems : userNavItems;
+  const navItems = isAdmin ? adminNavItems : userNavItems;
   const isLight = !isDarkMode;
   
   return (
@@ -156,170 +169,206 @@ export const DashboardLayout = () => {
         ) : (
           <>
             <div className="absolute inset-0 bg-[#0B1120]"></div>
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03]"></div>
-            <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-blue-900/20 rounded-full blur-[150px] animate-blob"></div>
-            <div className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-amber-900/20 rounded-full blur-[150px] animate-blob animation-delay-4000"></div>
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02]"></div>
+            {!isAdmin && (
+                <>
+                    <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-blue-900/20 rounded-full blur-[150px] animate-blob"></div>
+                    <div className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-amber-900/20 rounded-full blur-[150px] animate-blob animation-delay-4000"></div>
+                </>
+            )}
           </>
         )}
       </div>
 
-      {/* 🖥️ Desktop Sidebar (Luxury Glass) */}
-      <aside className={`hidden md:flex flex-col w-72 fixed inset-y-0 left-0 z-50 border-r transition-all duration-300 ${isLight ? 'bg-white/70 border-slate-200/50' : 'bg-[#0F172A]/80 border-white/5'} backdrop-blur-2xl`}>
+      {/* 🖥️ Desktop Sidebar (Fixed & Collapsible) */}
+      <aside className={`hidden md:flex flex-col fixed inset-y-0 left-0 z-50 border-r transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-72'} ${isLight ? 'bg-white/70 border-slate-200/50' : 'bg-[#0F172A] border-slate-800'} backdrop-blur-2xl`}>
          {/* Logo */}
-         <div className="h-28 flex items-center px-8 relative overflow-hidden">
-            {/* <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${isLight ? 'from-blue-400 to-amber-400' : 'from-blue-600 to-amber-500'}`}></div> */}
-            <div className="flex items-center gap-4 group cursor-pointer">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-105 ${isLight ? 'bg-blue-600 text-white' : 'bg-amber-500 text-white'}`}>
-                <ChefHat className="w-7 h-7 text-white" />
+         <div className={`h-20 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'px-8'} relative overflow-hidden border-b border-slate-800/50`}>
+            <div className="flex items-center gap-4 group cursor-pointer" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-105 ${isLight ? 'bg-blue-600 text-white' : 'bg-blue-900 text-amber-500'}`}>
+                <ChefHat className="w-6 h-6" />
               </div>
-              <div>
-                <h1 className={`text-xl font-bold tracking-tight leading-none ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  Street<span className={isLight ? 'text-blue-600' : 'text-amber-400'}>Eats</span>
-                </h1>
-                <p className={`text-[10px] font-medium uppercase tracking-wider mt-0.5 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {user?.role === 'ADMIN' ? 'Admin Console' : 'Premium Delivery'}
-                </p>
-              </div>
+              {!isSidebarCollapsed && (
+                  <div>
+                    <h1 className={`text-lg font-bold tracking-tight leading-none ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                      Street<span className={isLight ? 'text-blue-600' : 'text-amber-500'}>Eats</span>
+                    </h1>
+                    <p className={`text-[10px] font-medium uppercase tracking-wider mt-0.5 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {isAdmin ? 'Control Panel' : 'Premium Delivery'}
+                    </p>
+                  </div>
+              )}
             </div>
          </div>
 
          {/* Nav */}
-         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-            <p className={`px-4 text-[10px] font-bold uppercase tracking-widest mb-4 ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>Main Menu</p>
+         <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+            {!isSidebarCollapsed && <p className={`px-4 text-[10px] font-bold uppercase tracking-widest mb-4 ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>Main Menu</p>}
             {navItems.map((item, idx) => {
               const Icon = item.icon;
-              const content = (isActive: boolean) => (
-                <>
-                    {/* <div className={`absolute left-0 w-1 h-8 rounded-r-full transition-all duration-300 ${isActive ? 'bg-amber-500 scale-y-100' : 'bg-transparent scale-y-0'}`}></div> */}
-                    <Icon className={`w-5 h-5 transition-all duration-300 ${isActive ? 'text-blue-600 dark:text-amber-400' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
-                    <span className={`font-medium tracking-wide transition-colors ${isActive ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
-                      {item.label}
-                    </span>
-                    {item.href === '/cart' && cartCount > 0 && (
-                      <span className="ml-auto bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                        {cartCount}
-                      </span>
-                    )}
-                </>
-              );
-
               return item.href ? (
                 <NavLink
                   key={item.href}
                   to={item.href}
-                  className={({ isActive }) => `relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                    isActive ? 'bg-blue-50 dark:bg-white/5 text-blue-700 dark:text-white' : 'hover:bg-slate-50 dark:hover:bg-white/5'
-                  }`}
+                  className={({ isActive }) => `
+                    relative flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group
+                    ${isActive 
+                        ? (isLight ? 'bg-blue-50 text-blue-700' : 'bg-slate-800 text-amber-400 border-l-2 border-amber-500') 
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-400'}
+                    ${isSidebarCollapsed ? 'justify-center' : ''}
+                    ${item.label === 'สมัคร User Plus' && !isActive ? 'text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-900/10' : ''}
+                  `}
+                  title={isSidebarCollapsed ? item.label : ''}
                 >
-                  {({ isActive }) => content(isActive)}
+                  {({ isActive }) => (
+                    <>
+                        <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-slate-700 dark:group-hover:text-slate-200'}`} />
+                        {!isSidebarCollapsed && <span className="font-medium text-sm tracking-wide">{item.label}</span>}
+                        {item.href === '/cart' && cartCount > 0 && !isSidebarCollapsed && (
+                          <span className="ml-auto bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                            {cartCount}
+                          </span>
+                        )}
+                    </>
+                  )}
                 </NavLink>
               ) : (
                 <button
                   key={idx}
                   onClick={item.onClick}
-                  className="relative w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group hover:bg-slate-50 dark:hover:bg-white/5 text-left"
+                  className={`
+                    relative w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group hover:bg-slate-50 dark:hover:bg-slate-800/50 text-left text-slate-500 dark:text-slate-400
+                    ${isSidebarCollapsed ? 'justify-center' : ''}
+                  `}
+                  title={isSidebarCollapsed ? item.label : ''}
                 >
-                  {content(false)}
+                    <Icon className="w-5 h-5 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
+                    {!isSidebarCollapsed && <span className="font-medium text-sm tracking-wide">{item.label}</span>}
                 </button>
               );
             })}
          </nav>
 
          {/* Footer Profile */}
-         <div className="p-4">
-           <div className={`p-4 rounded-2xl border backdrop-blur-md ${isLight ? 'bg-white/60 border-slate-200/60 shadow-sm' : 'bg-white/5 border-white/10'}`}>
-              <div className="flex items-center gap-3 mb-4">
-                 <div className="w-10 h-10 rounded-full p-0.5 bg-slate-100 dark:bg-slate-800">
-                    <div className="w-full h-full rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
-                       <UserIcon className="w-5 h-5 text-white" />
-                    </div>
+         <div className="p-3 border-t border-slate-800/50">
+           <div className={`p-3 rounded-xl border backdrop-blur-md ${isLight ? 'bg-white/60 border-slate-200/60' : 'bg-slate-800/30 border-slate-700/50'}`}>
+              <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+                 <div className="w-9 h-9 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0">
+                    <UserIcon className="w-5 h-5 text-slate-500 dark:text-slate-300" />
                  </div>
-                 <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-amber-100'}`}>{user?.username}</p>
-                    <p className="text-xs text-slate-500 truncate">{user?.role}</p>
-                 </div>
+                 {!isSidebarCollapsed && (
+                     <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>{user?.username}</p>
+                        <p className={`text-[10px] font-mono uppercase tracking-wider ${user?.is_plus_member ? 'text-amber-500 font-bold' : 'text-slate-500'}`}>
+                            {user?.role === 'ADMIN' ? 'ADMINISTRATOR' : user?.is_plus_member ? '✨ PLUS MEMBER' : 'GENERAL USER'}
+                        </p>
+                     </div>
+                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                 <button onClick={() => setIsDarkMode(!isDarkMode)} className={`py-2 rounded-lg flex items-center justify-center transition-all border ${isLight ? 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600' : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-300'}`}>
-                    {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                 </button>
-                 <button onClick={() => confirm('Logout?') && logout()} className="py-2 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600 flex items-center justify-center transition-all border border-transparent hover:border-red-200">
-                    <LogOut className="w-4 h-4" />
-                 </button>
-              </div>
+              {!isSidebarCollapsed && (
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                     {!isAdmin && (
+                         <button onClick={() => setIsDarkMode(!isDarkMode)} className={`py-1.5 rounded-lg flex items-center justify-center transition-all border ${isLight ? 'bg-white border-slate-200 hover:bg-slate-50' : 'bg-slate-700 border-slate-600 hover:bg-slate-600'}`}>
+                            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                         </button>
+                     )}
+                     <button onClick={() => confirm('Logout?') && logout()} className={`py-1.5 rounded-lg flex items-center justify-center transition-all border ${isAdmin ? 'col-span-2 bg-red-900/20 border-red-900/30 text-red-400 hover:bg-red-900/40' : 'bg-slate-100 dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600'}`}>
+                        <LogOut className="w-4 h-4" /> {isAdmin && <span className="ml-2 text-xs font-bold">LOGOUT</span>}
+                     </button>
+                  </div>
+              )}
            </div>
          </div>
+         
+         {/* Collapse Toggle Button */}
+         <button 
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="absolute -right-3 top-24 bg-slate-800 border border-slate-700 text-slate-400 p-1 rounded-full shadow-lg hover:text-white transition-colors"
+         >
+            {isSidebarCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+         </button>
       </aside>
 
       {/* 📱 Mobile Content Wrapper */}
-      <div className="flex-1 flex flex-col md:ml-72 min-h-screen relative z-10 transition-all duration-500">
-         {/* Header (Glass) */}
-         <header className={`h-16 md:h-20 sticky top-0 z-40 px-4 md:px-8 flex items-center justify-between transition-all duration-300 ${isLight ? 'bg-white/80 border-b border-slate-200/50' : 'bg-[#020617]/80 border-b border-white/5'} backdrop-blur-xl`}>
+      <div className={`flex-1 flex flex-col ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-72'} min-h-screen relative z-10 transition-all duration-300`}>
+         {/* Header (Top Bar) */}
+         <header className={`h-16 sticky top-0 z-40 px-4 md:px-8 flex items-center justify-between transition-all duration-300 ${isLight ? 'bg-white/80 border-b border-slate-200/50' : 'bg-[#0B1120]/90 border-b border-slate-800'} backdrop-blur-xl`}>
             {/* Mobile Logo */}
             <div className="md:hidden flex items-center gap-2">
-               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md">
+               <div className="w-8 h-8 rounded-lg bg-blue-900 flex items-center justify-center text-amber-500 shadow-md">
                   <ChefHat className="w-5 h-5" />
                </div>
-               <span className={`font-bold text-lg ${isLight ? 'text-slate-900' : 'text-white'}`}>Street<span className="text-blue-600">Eats</span></span>
             </div>
 
-            {/* Desktop Breadcrumbs */}
-            <div className="hidden md:flex items-center gap-2 text-sm">
-               <span className="text-slate-400">Dashboard</span>
-               <ChevronRight className="w-4 h-4 text-slate-600" />
-               <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-amber-200'}`}>Overview</span>
+            {/* Desktop Breadcrumbs / Search */}
+            <div className="hidden md:flex items-center gap-4 flex-1 max-w-xl">
+               {isAdmin ? (
+                   <div className="relative w-full">
+                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                       <input 
+                          type="text" 
+                          placeholder="Global Search (Orders, Users, Logs)..." 
+                          className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                       />
+                   </div>
+               ) : (
+                   <div className="flex items-center gap-2 text-sm">
+                       <span className="text-slate-400">Dashboard</span>
+                       <ChevronRight className="w-4 h-4 text-slate-600" />
+                       <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-amber-200'}`}>Overview</span>
+                   </div>
+               )}
             </div>
 
             {/* Right Actions */}
             <div className="flex items-center gap-3">
-               <div className="md:hidden">
-                  <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2.5 rounded-full ${isLight ? 'bg-slate-100 text-slate-600' : 'bg-white/10 text-amber-200'}`}>
-                     {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  </button>
-               </div>
-               <button className={`p-2 rounded-full relative transition-transform hover:scale-105 ${isLight ? 'bg-white border border-slate-200 text-slate-600' : 'bg-white/5 text-slate-300 border border-white/5'}`}>
-                  <Sparkles className="w-4 h-4" />
+               {isAdmin && (
+                   <div className="flex items-center gap-2 mr-4">
+                       <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                       <span className="text-xs font-mono text-slate-400">SYSTEM: ONLINE</span>
+                   </div>
+               )}
+               <button className={`p-2 rounded-full relative transition-transform hover:scale-105 ${isLight ? 'bg-white border border-slate-200 text-slate-600' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-amber-400'}`}>
+                  <Bell className="w-4 h-4" />
+                  {isAdmin && <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-800"></span>}
                </button>
-               {/* Avatar for Mobile */}
-               <div className="md:hidden w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 text-xs font-bold">
-                 {user?.username?.charAt(0).toUpperCase()}
-               </div>
             </div>
          </header>
 
          {/* Main Content Area */}
-         <main className="flex-1 p-4 md:p-8 w-full max-w-7xl mx-auto pb-28 md:pb-8">
+         <main className="flex-1 p-4 md:p-6 w-full max-w-[1600px] mx-auto pb-28 md:pb-8 overflow-x-hidden">
             <Outlet />
          </main>
       </div>
 
-      {/* 📱 Mobile Floating Dock (เกาะลอยหรูหรา) */}
-      <nav className="md:hidden fixed bottom-4 left-4 right-4 z-50">
-        <div className={`rounded-2xl px-6 py-3 flex items-center justify-between shadow-xl backdrop-blur-xl border ${isLight ? 'bg-white/90 border-slate-200/50 shadow-slate-200/50' : 'bg-[#0F172A]/90 border-white/10 shadow-black/50'}`}>
-            {navItems.map((item, idx) => {
-              const isActive = item.href ? location.pathname === item.href : false;
-              if (!item.href && !item.onClick) return null;
-              
-              return (
-                <button
-                  key={idx}
-                  onClick={() => item.href ? window.location.href = item.href : item.onClick?.()}
-                  className="relative group flex flex-col items-center justify-center"
-                >
-                  <div className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 ${isActive ? (isLight ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 -translate-y-2' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 -translate-y-2') : 'text-slate-400'}`}>
-                     <item.icon className="w-5 h-5" />
-                     {item.href === '/cart' && cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-slate-900">
-                           {cartCount}
-                        </span>
-                     )}
-                  </div>
-                  {/* {isActive && <div className={`absolute -bottom-2 w-1 h-1 rounded-full ${isLight ? 'bg-blue-600' : 'bg-amber-400'}`}></div>} */}
-                </button>
-              );
-            })}
-        </div>
-      </nav>
+      {/* 📱 Mobile Floating Dock (Hidden for Admin to force desktop usage or simplified view) */}
+      {!isAdmin && (
+          <nav className="md:hidden fixed bottom-4 left-4 right-4 z-50">
+            <div className={`rounded-2xl px-6 py-3 flex items-center justify-between shadow-xl backdrop-blur-xl border ${isLight ? 'bg-white/90 border-slate-200/50 shadow-slate-200/50' : 'bg-[#0F172A]/90 border-white/10 shadow-black/50'}`}>
+                {navItems.map((item, idx) => {
+                  const isActive = item.href ? location.pathname === item.href : false;
+                  if (!item.href && !item.onClick) return null;
+                  
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => item.href ? window.location.href = item.href : item.onClick?.()}
+                      className="relative group flex flex-col items-center justify-center"
+                    >
+                      <div className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 ${isActive ? (isLight ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 -translate-y-2' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 -translate-y-2') : 'text-slate-400'}`}>
+                         <item.icon className="w-5 h-5" />
+                         {item.href === '/cart' && cartCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-slate-900">
+                               {cartCount}
+                            </span>
+                         )}
+                      </div>
+                    </button>
+                  );
+                })}
+            </div>
+          </nav>
+      )}
 
       {/* 💎 Luxury Withdrawal Modal */}
       {showWithdrawModal && (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Save, Loader2, Camera, Shield, Lock, Trash2, AlertTriangle, Store, KeyRound, Sparkles, CreditCard, CheckCircle2, X, Crown, Wallet, TrendingUp } from 'lucide-react';
+import { User, Save, Loader2, Camera, Shield, Lock, Trash2, AlertTriangle, Store, KeyRound, Sparkles, CreditCard, CheckCircle2, X, Crown, Wallet, TrendingUp, BarChart } from 'lucide-react';
 import { useAuthStore } from './use-auth-store';
 import { api } from '../lib/axios';
 import { sha256 } from 'js-sha256';
@@ -34,6 +34,10 @@ export const SettingsPage = () => {
   const [createdAt, setCreatedAt] = useState('');
   const [updatedAt, setUpdatedAt] = useState('');
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  
+  // Spending Chart State
+  const [spendingOrders, setSpendingOrders] = useState<any[]>([]);
+  const [chartPeriod, setChartPeriod] = useState<'1D' | '5D' | '1M' | '1Y' | '5Y'>('1M');
 
   // Determine which user to fetch/edit
   const targetUserId = isAdmin && paramUserId ? paramUserId : loggedInUser?.id;
@@ -59,6 +63,13 @@ export const SettingsPage = () => {
                  const updatedUser = { ...loggedInUser, is_plus_member: fullUserData.is_plus_member };
                  login(updatedUser, token || '');
              }
+          }
+
+          // Fetch Orders for Spending History
+          const { data: allOrders } = await api.get('/orders');
+          if (Array.isArray(allOrders)) {
+             const myOrders = allOrders.filter((o: any) => String(o.customer_id) === String(targetUserId) && ['paid', 'completed'].includes(o.order_status));
+             setSpendingOrders(myOrders);
           }
         } catch (error) {
           console.error(`Failed to fetch user details for ID: ${targetUserId}`, error);
@@ -113,7 +124,14 @@ export const SettingsPage = () => {
 
     setIsSaving(true);
     try {
-      const { data: responseData } = await api.patch(`/customers/${targetUserId}`, {
+      // 1. ดึงข้อมูลล่าสุดก่อนเพื่อป้องกันข้อมูลหายเมื่อใช้ PUT
+      const { data: currentData } = await api.get(`/customers/${targetUserId}`);
+
+      // ⚠️ แก้ไข: แยก id ออกจาก payload เพื่อป้องกัน Error 500 (บาง Backend ไม่ชอบให้ส่ง id ไปใน body)
+      const { id, ...restData } = currentData;
+
+      const payload = {
+        ...restData, // Merge ข้อมูลเดิม (ยกเว้น id)
         username: username,
         fullname: name,
         lastname: lastname,
@@ -122,10 +140,21 @@ export const SettingsPage = () => {
         address: address,
         image_url: avatar,
         updated_at: new Date().toISOString(),
-      });
+      };
+
+      // 2. ใช้ PUT แทน PATCH เพื่อความชัวร์ (บาง Backend ไม่รองรับ PATCH)
+      const { data: responseData } = await api.put(`/customers/${targetUserId}`, payload);
 
       if (isEditingSelf && loggedInUser) {
-        const updatedUser = { ...loggedInUser, username: responseData.username, name: responseData.fullname, avatar_url: responseData.image_url };
+        // อัปเดตข้อมูลใน Store ทันทีเพื่อให้ UI ส่วนอื่น (เช่น Sidebar) เปลี่ยนตาม
+        const updatedUser = { 
+            ...loggedInUser, 
+            username: responseData.username || username,
+            fullname: responseData.fullname || name,
+            name: responseData.fullname || name, // เผื่อไว้สำหรับ component ที่ใช้ field ต่างกัน
+            image_url: responseData.image_url || avatar,
+            avatar_url: responseData.image_url || avatar // เผื่อไว้สำหรับ component ที่ใช้ field ต่างกัน
+        };
         login(updatedUser, token);
       }
 
@@ -155,8 +184,10 @@ export const SettingsPage = () => {
 
     setIsPasswordLoading(true);
     try {
+      // ดึงข้อมูลล่าสุดเสมอเพื่อความปลอดภัย
+      const { data: currentUser } = await api.get(`/customers/${targetUserId}`);
+
       if (isEditingSelf) {
-        const { data: currentUser } = await api.get(`/customers/${targetUserId}`);
         const currentPasswordHash = sha256(currentPassword);
         
         if (currentUser.password !== currentPasswordHash) { 
@@ -167,7 +198,8 @@ export const SettingsPage = () => {
       }
 
       const newPasswordHash = sha256(newPassword);
-      await api.patch(`/customers/${targetUserId}`, {
+      await api.put(`/customers/${targetUserId}`, {
+        ...currentUser,
         password: newPasswordHash
       });
 
@@ -213,7 +245,8 @@ export const SettingsPage = () => {
     const confirmed = window.confirm('ยืนยันการสมัคร User Plus ราคา 199 บาท/เดือน?');
     if (confirmed) {
         try {
-          await api.patch(`/customers/${loggedInUser.id}`, { is_plus_member: true });
+          const { data: currentUser } = await api.get(`/customers/${loggedInUser.id}`);
+          await api.put(`/customers/${loggedInUser.id}`, { ...currentUser, is_plus_member: true });
           const updatedUser = { ...loggedInUser, is_plus_member: true };
           login(updatedUser, token); 
           alert('🎉 ยินดีต้อนรับสู่ User Plus! คุณได้รับสิทธิ์ผ่อนชำระและเปิดร้านค้าแล้ว');
@@ -224,6 +257,58 @@ export const SettingsPage = () => {
         }
     }
   };
+
+  // 📊 Chart Data Calculation (Spending)
+  const getChartData = () => {
+    const now = new Date();
+    let data: number[] = [];
+    let labels: string[] = [];
+    
+    if (chartPeriod === '1D') {
+        data = new Array(24).fill(0);
+        labels = new Array(24).fill(0).map((_, i) => `${i}:00`);
+        spendingOrders.forEach(o => {
+            const d = new Date(o.order_date);
+            if (d.toDateString() === now.toDateString()) data[d.getHours()] += Number(o.total_price);
+        });
+    } else if (chartPeriod === '5D') {
+        for (let i = 4; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            labels.push(d.toLocaleDateString('th-TH', { weekday: 'short' }));
+            const total = spendingOrders
+                .filter(o => new Date(o.order_date).toDateString() === d.toDateString())
+                .reduce((sum, o) => sum + Number(o.total_price), 0);
+            data.push(total);
+        }
+    } else if (chartPeriod === '1M') {
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        data = new Array(daysInMonth).fill(0);
+        labels = new Array(daysInMonth).fill(0).map((_, i) => `${i + 1}`);
+        spendingOrders.forEach(o => {
+            const d = new Date(o.order_date);
+            if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) data[d.getDate() - 1] += Number(o.total_price);
+        });
+    } else if (chartPeriod === '1Y') {
+        data = new Array(12).fill(0);
+        labels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        spendingOrders.forEach(o => {
+            const d = new Date(o.order_date);
+            if (d.getFullYear() === now.getFullYear()) data[d.getMonth()] += Number(o.total_price);
+        });
+    } else if (chartPeriod === '5Y') {
+        for (let i = 4; i >= 0; i--) {
+            const year = now.getFullYear() - i;
+            labels.push(String(year));
+            const total = spendingOrders.filter(o => new Date(o.order_date).getFullYear() === year).reduce((sum, o) => sum + Number(o.total_price), 0);
+            data.push(total);
+        }
+    }
+    return { data, labels, max: Math.max(...data, 1) };
+  };
+
+  const chartData = getChartData();
+  const totalSpending = spendingOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
 
   if (isPageLoading) {
     return (
@@ -541,6 +626,52 @@ export const SettingsPage = () => {
                     </button>
                 </div>
              </form>
+          </div>
+
+          {/* 3. Spending History Chart */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-lg shadow-slate-200/50 dark:shadow-black/20 border border-slate-100 dark:border-slate-700">
+             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-50 dark:bg-slate-700 text-green-600 dark:text-green-400 rounded-lg">
+                       <BarChart className="w-5 h-5" />
+                    </div>
+                    <div>
+                       <h3 className="text-lg font-bold text-slate-800 dark:text-white">ประวัติการใช้จ่าย</h3>
+                       <p className="text-xs text-slate-500">ยอดรวมทั้งหมด: <span className="font-bold text-green-600">฿{totalSpending.toLocaleString()}</span></p>
+                    </div>
+                </div>
+                <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
+                    {(['1D', '5D', '1M', '1Y', '5Y'] as const).map((p) => (
+                        <button
+                            key={p}
+                            onClick={() => setChartPeriod(p)}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${chartPeriod === p ? 'bg-white dark:bg-slate-700 text-green-600 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            {p}
+                        </button>
+                    ))}
+                </div>
+             </div>
+
+             <div className="h-56 flex items-end gap-2">
+                {chartData.data.map((value, idx) => (
+                    <div key={idx} className="flex-1 flex flex-col justify-end items-center group relative">
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-1 px-2 rounded pointer-events-none whitespace-nowrap z-10">
+                            ฿{value.toLocaleString()}
+                        </div>
+                        {/* Bar */}
+                        <div 
+                            className="w-full bg-green-50 dark:bg-slate-700 rounded-t-sm relative overflow-hidden transition-all duration-500 group-hover:bg-green-100 dark:group-hover:bg-slate-600"
+                            style={{ height: `${(value / chartData.max) * 100}%`, minHeight: value > 0 ? '4px' : '0' }}
+                        >
+                            <div className="absolute bottom-0 left-0 right-0 bg-green-500 h-full opacity-80"></div>
+                        </div>
+                        {/* Label */}
+                        <span className="text-[9px] text-slate-400 mt-2 truncate w-full text-center">{chartData.labels[idx]}</span>
+                    </div>
+                ))}
+             </div>
           </div>
 
         </div>

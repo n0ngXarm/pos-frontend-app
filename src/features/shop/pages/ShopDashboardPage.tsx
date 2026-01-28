@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Store, DollarSign, Clock, ChefHat, CheckCircle, Wallet, 
-  Utensils, RefreshCw, Bell, History, XCircle
+  Utensils, RefreshCw, Bell, History, XCircle, BarChart3
 } from 'lucide-react';
 import { useAuthStore } from '../../../stores/use-auth-store';
 import { getRestaurants, getOrders, updateOrderStatus, getMenusByRestaurantId } from '../api/shopService';
@@ -15,6 +15,7 @@ export const ShopDashboardPage = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+  const [chartPeriod, setChartPeriod] = useState<'1D' | '5D' | '1M' | '1Y' | '5Y'>('1D');
   
   // Stats
   const [stats, setStats] = useState({
@@ -145,6 +146,60 @@ export const ShopDashboardPage = () => {
     }
   };
 
+  // 📊 Chart Data Calculation
+  const getChartData = () => {
+    const now = new Date();
+    let data: number[] = [];
+    let labels: string[] = [];
+    
+    // กรองเฉพาะออเดอร์ที่สำเร็จแล้วเพื่อนำมาคำนวณยอดขาย
+    const completedOrders = orders.filter(o => ['paid', 'completed'].includes(o.order_status));
+
+    if (chartPeriod === '1D') {
+        data = new Array(24).fill(0);
+        labels = new Array(24).fill(0).map((_, i) => `${i}:00`);
+        completedOrders.forEach(o => {
+            const d = new Date(o.order_date);
+            if (d.toDateString() === now.toDateString()) data[d.getHours()] += Number(o.total_price);
+        });
+    } else if (chartPeriod === '5D') {
+        for (let i = 4; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            labels.push(d.toLocaleDateString('th-TH', { weekday: 'short' }));
+            const total = completedOrders
+                .filter(o => new Date(o.order_date).toDateString() === d.toDateString())
+                .reduce((sum, o) => sum + Number(o.total_price), 0);
+            data.push(total);
+        }
+    } else if (chartPeriod === '1M') {
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        data = new Array(daysInMonth).fill(0);
+        labels = new Array(daysInMonth).fill(0).map((_, i) => `${i + 1}`);
+        completedOrders.forEach(o => {
+            const d = new Date(o.order_date);
+            if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) data[d.getDate() - 1] += Number(o.total_price);
+        });
+    } else if (chartPeriod === '1Y') {
+        data = new Array(12).fill(0);
+        labels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        completedOrders.forEach(o => {
+            const d = new Date(o.order_date);
+            if (d.getFullYear() === now.getFullYear()) data[d.getMonth()] += Number(o.total_price);
+        });
+    } else if (chartPeriod === '5Y') {
+        for (let i = 4; i >= 0; i--) {
+            const year = now.getFullYear() - i;
+            labels.push(String(year));
+            const total = completedOrders.filter(o => new Date(o.order_date).getFullYear() === year).reduce((sum, o) => sum + Number(o.total_price), 0);
+            data.push(total);
+        }
+    }
+    return { data, labels, max: Math.max(...data, 1) };
+  };
+
+  const chartData = getChartData();
+
   // Filter Orders based on Tab
   const activeStatusList = ['pending', 'paid', 'cooking', 'pending_payment', 'credit_pending', 'waiting'];
   const activeOrders = orders.filter(o => 
@@ -215,6 +270,46 @@ export const ShopDashboardPage = () => {
                     <span>฿{stats.netProfit.toLocaleString()}</span>
                 </div>
             </div>
+        </div>
+      </div>
+
+      {/* 📊 Sales Chart Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-8 shadow-xl border border-slate-100 dark:border-slate-700">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <h3 className="font-bold text-xl text-slate-800 dark:text-white flex items-center gap-2">
+                <BarChart3 className="w-6 h-6 text-blue-600" /> Analytics
+            </h3>
+            <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
+                {(['1D', '5D', '1M', '1Y', '5Y'] as const).map((p) => (
+                    <button
+                        key={p}
+                        onClick={() => setChartPeriod(p)}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${chartPeriod === p ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                        {p}
+                    </button>
+                ))}
+            </div>
+        </div>
+        
+        <div className="h-64 flex items-end gap-2 md:gap-4">
+            {chartData.data.map((value, idx) => (
+                <div key={idx} className="flex-1 flex flex-col justify-end items-center group relative">
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-1 px-2 rounded pointer-events-none whitespace-nowrap z-10">
+                        ฿{value.toLocaleString()}
+                    </div>
+                    {/* Bar */}
+                    <div 
+                        className="w-full bg-blue-100 dark:bg-slate-700 rounded-t-md relative overflow-hidden transition-all duration-500 group-hover:bg-blue-200 dark:group-hover:bg-slate-600"
+                        style={{ height: `${(value / chartData.max) * 100}%`, minHeight: value > 0 ? '4px' : '0' }}
+                    >
+                        <div className="absolute bottom-0 left-0 right-0 bg-blue-500 h-full opacity-80"></div>
+                    </div>
+                    {/* Label */}
+                    <span className="text-[10px] text-slate-400 mt-2 truncate w-full text-center">{chartData.labels[idx]}</span>
+                </div>
+            ))}
         </div>
       </div>
 
