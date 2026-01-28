@@ -21,6 +21,7 @@ export const loginWithUsername = async (credentials: LoginCredentials): Promise<
 
   return {
     token: 'mock-jwt-token-bypass',
+    refreshToken: 'mock-refresh-token',
     user: {
       id: user.id.toString(),
       username: user.username,

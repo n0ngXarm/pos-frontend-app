@@ -13,6 +13,7 @@ export type LoginCredentials = z.infer<typeof LoginSchema>;
 // หน้าตาของ User ที่ได้จาก Backend (เดาจากมาตรฐาน ถ้าไม่ตรงบอกนะครับ)
 export interface AuthResponse {
   token: string;
+  refreshToken?: string;
   user: {
     id: string;
     username: string;

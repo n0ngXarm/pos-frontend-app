@@ -8,6 +8,9 @@ export interface Restaurant {
   phone: string;
   image_url: string;
   owner_description?: string;
+  owner_id?: number;
+  rating?: number;
+  category?: string;
 }
 
 export interface Menu {

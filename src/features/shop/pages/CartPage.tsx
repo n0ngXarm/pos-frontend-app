@@ -15,11 +15,11 @@ import { useToastStore } from '../../../stores/useToastStore';
 export const CartPage = () => {
   const navigate = useNavigate();
   const { user, login, token, refreshToken } = useAuthStore();
-  const { items: rawItems, removeItem, updateQuantity, clearCart, addItem } = useCartStore();
+  const { items: rawItems, removeItem, updateQuantity, clearCart } = useCartStore();
   const { addToast } = useToastStore();
   
   // ✅ Local state for "Saved for later" items
-  const [savedItems, setSavedItems] = useState<any[]>([]);
+  const [savedItems] = useState<any[]>([]);
 
   const items = Array.isArray(rawItems)
     ? rawItems.filter(item => item && typeof item === 'object' && item.menu_id) : [];

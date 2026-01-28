@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserPlus, User, Lock, Mail, ArrowRight, Loader2, Store } from 'lucide-react';
+import { UserPlus, User, Lock, ArrowRight, Loader2, Store } from 'lucide-react';
 import { api } from '../../../lib/axios';
 import { sha256 } from 'js-sha256';
 

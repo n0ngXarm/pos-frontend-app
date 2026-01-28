@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, User, Lock, ChefHat, ArrowRight, Loader2 } from 'lucide-react';
+import { User, Lock, ChefHat, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../../stores/use-auth-store';
 import { loginWithUsername } from '../api/login';
 
