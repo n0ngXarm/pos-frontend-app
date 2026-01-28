@@ -1,73 +1,52 @@
-# React + TypeScript + Vite
+# 🍽️ POS Frontend App (React + TypeScript)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Web Application สำหรับระบบจัดการร้านอาหาร (Point of Sale) ครบวงจร ตั้งแต่ลูกค้าสั่งอาหาร ไปจนถึงครัวรับออเดอร์ พัฒนาด้วยเทคโนโลยีทันสมัย เน้นความรวดเร็วและใช้งานง่าย
 
-Currently, two official plugins are available:
+![App Screenshot](https://placehold.co/1200x600?text=POS+Application+Preview) 
+*(คุณสามารถใส่รูป Screenshot หน้าเว็บจริงของคุณตรงนี้ได้)*
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ ฟีเจอร์หลัก (Key Features)
 
-## React Compiler
+### 👤 สำหรับลูกค้า (User Side)
+- **🛍️ เลือกร้านอาหาร (Shop Selection):** ดูรายชื่อร้านอาหารทั้งหมด และเลือกเข้าไปดูเมนูได้
+- **📖 รายการอาหาร (Menu):** แสดงรายการอาหารแยกหมวดหมู่ พร้อมรูปภาพประกอบ
+- **🛒 ตะกร้าสินค้า (Cart System):** เพิ่ม/ลด จำนวนสินค้า คำนวณราคารวมอัตโนมัติ
+- **💳 ระบบชำระเงิน (Payment Gateway Simulation):**
+  - รองรับ **PromptPay QR Code** (เจน QR จริงจากยอดเงิน)
+  - ระบบนับถอยหลังการชำระเงิน (Countdown Timer)
+  - รองรับการจ่ายเงินสด (Cash)
+- **🕒 ติดตามสถานะออเดอร์ (Order History):**
+  - Timeline แสดงสถานะอาหารแบบ Real-time (รอคิว -> กำลังปรุง -> เสร็จสิ้น)
+  - Auto-refresh ข้อมูลทุก 5 วินาที
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 👨‍🍳 สำหรับร้านค้า/แอดมิน (Admin & Kitchen Side)
+- **🍳 จอภาพห้องครัว (Kitchen Monitor):**
+  - แสดงออเดอร์ที่เข้ามาแบบ Real-time
+  - กดเปลี่ยนสถานะได้ทันที (รับออเดอร์ / ปรุงเสร็จ / ยกเลิก)
+  - มีระบบเสียงแจ้งเตือนเมื่อมีออเดอร์ใหม่ (Sound Alert)
+- **📝 จัดการเมนูอาหาร (Menu Management):**
+  - เพิ่ม/ลบ/แก้ไข รายการอาหาร
+  - **📸 ระบบย่อรูปภาพอัตโนมัติ (Smart Image Compression):** ย่อไฟล์ภาพก่อนส่งขึ้น Server ป้องกัน Database บวม
+- **📊 แดชบอร์ด (Dashboard):** ดูสรุปยอดขายและสถิติเบื้องต้น
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🛠️ เทคโนโลยีที่ใช้ (Tech Stack)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Frontend Framework:** [React](https://react.dev/) + [Vite](https://vitejs.dev/)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **State Management:** [Zustand](https://github.com/pmndrs/zustand) (เบาและเร็วกว่า Redux)
+- **API Client:** [Axios](https://axios-http.com/)
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **Form Handling:** React Hook Form
+- **Routing:** React Router DOM
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 🚀 วิธีติดตั้งและรันโปรเจกต์ (Getting Started)
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. **Clone โปรเจกต์**
+   ```bash
+   git clone [https://github.com/n0ngXarm/pos-frontend-app.git](https://github.com/n0ngXarm/pos-frontend-app.git)
+   cd pos-frontend-app
