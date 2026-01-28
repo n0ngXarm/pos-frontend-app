@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Save, Loader2, Camera, Shield, Lock, Trash2, AlertTriangle, Store, KeyRound, Sparkles, CreditCard, CheckCircle2, X, Crown, Wallet, TrendingUp, BarChart } from 'lucide-react';
+import { User, Save, Loader2, Camera, Shield, Lock, Trash2, AlertTriangle, Store, KeyRound, Sparkles, CheckCircle2, X, Crown, Wallet, TrendingUp, BarChart } from 'lucide-react';
 import { useAuthStore } from './use-auth-store';
 import { api } from '../lib/axios';
 import { sha256 } from 'js-sha256';

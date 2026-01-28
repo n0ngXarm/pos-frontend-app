@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, FileText, Upload, Wallet, Copy, AlertCircle } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Upload, Wallet, Copy } from 'lucide-react';
 import { useCartStore } from './useCartStore';
 import { useAuthStore } from './use-auth-store';
 import { api } from '../lib/axios';
 
 export const CartPage = () => {
   const navigate = useNavigate();
-  const { items, increaseQuantity, decreaseQuantity, removeItem, clearCart } = useCartStore();
+  const { items, updateQuantity, removeItem, clearCart } = useCartStore();
   const { user } = useAuthStore();
   
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -48,10 +48,10 @@ export const CartPage = () => {
             customer_id: user.id,
             restaurant_id: restaurantId,
             items: items.map(item => ({
-                menu_id: item.id,
+                menu_id: item.menu_id,
                 quantity: item.quantity,
                 price: item.price,
-                notes: item.notes || ''
+                notes: (item as any).notes || ''
             })),
             total_price: total,
             slip_image: slipImage,
@@ -117,19 +117,19 @@ export const CartPage = () => {
             {/* Left Column: Items */}
             <div className="lg:col-span-7 space-y-5">
                 {items.map((item) => (
-                    <div key={item.id} className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex gap-5 items-center">
-                        <img src={item.image_url || 'https://placehold.co/150'} alt={item.name} className="w-24 h-24 rounded-2xl object-cover bg-slate-100" />
+                    <div key={item.menu_id} className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex gap-5 items-center">
+                        <img src={item.image_url || 'https://placehold.co/150'} alt={item.menu_name} className="w-24 h-24 rounded-2xl object-cover bg-slate-100" />
                         <div className="flex-1">
                             <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-bold text-lg text-slate-800 dark:text-white">{item.name}</h3>
-                                <button onClick={() => removeItem(item.id)} className="text-slate-300 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
+                                <h3 className="font-bold text-lg text-slate-800 dark:text-white">{item.menu_name}</h3>
+                                <button onClick={() => removeItem(item.menu_id)} className="text-slate-300 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
                             </div>
                             <div className="flex items-center justify-between">
                                 <p className="font-black text-xl text-blue-600">฿{Number(item.price).toLocaleString()}</p>
                                 <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-900 rounded-xl p-1">
-                                    <button onClick={() => decreaseQuantity(item.id)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm"><Minus className="w-4 h-4" /></button>
+                                    <button onClick={() => updateQuantity(item.menu_id, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm"><Minus className="w-4 h-4" /></button>
                                     <span className="font-bold w-6 text-center">{item.quantity}</span>
-                                    <button onClick={() => increaseQuantity(item.id)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm"><Plus className="w-4 h-4" /></button>
+                                    <button onClick={() => updateQuantity(item.menu_id, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm"><Plus className="w-4 h-4" /></button>
                                 </div>
                             </div>
                         </div>

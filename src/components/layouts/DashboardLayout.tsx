@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { 
   Store, ShoppingBag, LogOut, ChefHat, Settings, Clock, User as UserIcon, Sun, Moon, Wallet, 
-  CheckCircle2, X, Search, ChevronRight, ShieldCheck, Sparkles, LayoutDashboard, ChevronLeft, Bell
+  Search, ChevronRight, ShieldCheck, Sparkles, LayoutDashboard, ChevronLeft, Bell, X
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { useCartStore } from '../../stores/useCartStore';
@@ -129,15 +129,23 @@ export const DashboardLayout = () => {
     }
   };
 
+  // Define a type for navigation items to handle mixed href/onClick
+  type NavItem = {
+    label: string;
+    icon: any;
+    href?: string;
+    onClick?: () => void;
+  };
+
   // Navigation Items
-  const adminNavItems = [
+  const adminNavItems: NavItem[] = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { label: 'จัดการร้านค้า', href: '/admin/shops', icon: Store },
     { label: 'ออเดอร์', href: '/admin/orders', icon: ChefHat },
     { label: 'ตั้งค่า', href: '/settings', icon: Settings },
   ];
 
-  const userNavItems = [
+  const userNavItems: NavItem[] = [
     { label: 'เลือกร้าน', href: '/shops', icon: Store },
     { label: 'ตะกร้า', href: '/cart', icon: ShoppingBag },
     { label: 'ประวัติ', href: '/orders', icon: Clock },
@@ -235,7 +243,7 @@ export const DashboardLayout = () => {
               ) : (
                 <button
                   key={idx}
-                  onClick={item.onClick}
+                  onClick={item.onClick || (() => {})}
                   className={`
                     relative w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group hover:bg-slate-50 dark:hover:bg-slate-800/50 text-left text-slate-500 dark:text-slate-400
                     ${isSidebarCollapsed ? 'justify-center' : ''}
@@ -347,12 +355,12 @@ export const DashboardLayout = () => {
             <div className={`rounded-2xl px-6 py-3 flex items-center justify-between shadow-xl backdrop-blur-xl border ${isLight ? 'bg-white/90 border-slate-200/50 shadow-slate-200/50' : 'bg-[#0F172A]/90 border-white/10 shadow-black/50'}`}>
                 {navItems.map((item, idx) => {
                   const isActive = item.href ? location.pathname === item.href : false;
-                  if (!item.href && !item.onClick) return null;
+                  if (!item.href && !('onClick' in item)) return null;
                   
                   return (
                     <button
                       key={idx}
-                      onClick={() => item.href ? window.location.href = item.href : item.onClick?.()}
+                      onClick={() => item.href ? window.location.href = item.href : (item.onClick && item.onClick())}
                       className="relative group flex flex-col items-center justify-center"
                     >
                       <div className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 ${isActive ? (isLight ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 -translate-y-2' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 -translate-y-2') : 'text-slate-400'}`}>

@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Trash2, Plus, Minus, ArrowRight, ShoppingBag, ArrowLeft, 
+  Trash2, Plus, Minus, ArrowRight, ShoppingBag, 
   Banknote, QrCode, CreditCard, Upload, ShieldCheck, Lock, X, 
-  AlertCircle, Copy, Loader2, CheckCircle2, Wallet, Sparkles, 
-  ChevronRight, Info, Printer, Heart, Gift, RefreshCw, ShoppingCart
+  Copy, Loader2, CheckCircle2, Wallet, 
+  ChevronRight, Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '../../../stores/useCartStore';
@@ -40,18 +40,6 @@ export const CartPage = () => {
   const totalPrice = items.reduce((sum, item) => sum + (Number(item.price || 0) * (item.quantity || 0)), 0);
 
   // --- Actions ---
-  const handleSaveForLater = (item: any) => {
-    setSavedItems((prev) => [...prev, item]);
-    removeItem(item.menu_id);
-    addToast('ย้ายไปรายการที่บันทึกไว้แล้ว', 'success');
-  };
-
-  const handleMoveToCart = (item: any) => {
-    addItem(item);
-    setSavedItems((prev) => prev.filter((i) => i.menu_id !== item.menu_id));
-    addToast('ย้ายกลับเข้าตะกร้าแล้ว', 'success');
-  };
-
   // --- Helpers ---
   const resizeImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -83,7 +71,7 @@ export const CartPage = () => {
     }
   };
 
-  const verifySlip = (base64: string): Promise<boolean> => {
+  const verifySlip = (_base64: string): Promise<boolean> => {
     return new Promise((resolve) => {
         // Mock verification for UX demo
         setTimeout(() => {
@@ -91,21 +79,6 @@ export const CartPage = () => {
             resolve(true);
         }, 1500);
     });
-  };
-
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = matches && matches[0] || '';
-    const parts = [];
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-    if (parts.length) {
-      return parts.join(' ');
-    } else {
-      return value;
-    }
   };
 
   const handleBindCardSubmit = (e: React.FormEvent) => {
@@ -164,7 +137,7 @@ export const CartPage = () => {
 
       const orderPromises = items.map((item) =>
         createOrder({
-          customer_id: Number(user.id) || 0,
+          customer_id: Number(user?.id) || 0,
           restaurant_id: item.restaurant_id,
           menu_id: item.menu_id,
           quantity: item.quantity,

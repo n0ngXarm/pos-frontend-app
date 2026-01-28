@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Store, DollarSign, Clock, ChefHat, CheckCircle, Wallet, 
+  DollarSign, Clock, ChefHat, CheckCircle, Wallet, 
   Utensils, RefreshCw, Bell, History, XCircle, BarChart3
 } from 'lucide-react';
 import { useAuthStore } from '../../../stores/use-auth-store';
@@ -61,14 +61,14 @@ export const ShopDashboardPage = () => {
       setMyShop(shop);
 
       // เตรียม ID ร้านค้า (เผื่อบางที Backend ส่ง id หรือ restaurant_id)
-      const myShopId = String(shop.restaurant_id || shop.id);
+      const myShopId = String(shop.restaurant_id || (shop as any).id);
 
       // 2. (NEW) ดึงเมนูทั้งหมดของร้านเพื่อใช้ Cross-Check
       // แก้ปัญหา Backend ไม่ส่ง restaurant_id มาในออเดอร์
       let shopMenuIds = new Set<string>();
       let shopMenuNames = new Set<string>(); // ✅ เพิ่ม: เก็บชื่อเมนูด้วย
       try {
-        const myMenus = await getMenusByRestaurantId(shop.restaurant_id || shop.id);
+        const myMenus = await getMenusByRestaurantId(shop.restaurant_id || (shop as any).id);
         if (Array.isArray(myMenus)) {
             myMenus.forEach((m: any) => {
                 shopMenuIds.add(String(m.menu_id));

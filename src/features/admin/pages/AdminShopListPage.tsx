@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Loader2, Search, Plus, Filter, MoreHorizontal, 
+  Loader2, Search, Plus, Filter, 
   Trash2, Edit, Eye, CheckSquare, Square, ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import { getRestaurants } from '../../shop/api/shopService';
@@ -150,11 +150,11 @@ export const AdminShopListPage = () => {
                 </td>
                 <td className="p-4">
                     <span className="px-2 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs text-slate-300">
-                        {shop.category || 'General'}
+                        {(shop as any).category || 'General'}
                     </span>
                 </td>
                 <td className="p-4 text-amber-500 font-bold text-sm">
-                    ⭐ {shop.rating || '0.0'}
+                    ⭐ {(shop as any).rating || '0.0'}
                 </td>
                 <td className="p-4 text-right space-x-2">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
