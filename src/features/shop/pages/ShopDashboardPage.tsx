@@ -161,7 +161,7 @@ export const ShopDashboardPage = () => {
         <div>
           <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
             {myShop?.restaurant_name || 'My Shop'}
-            <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold tracking-wider uppercase">Dashboard</span>
+            <span className="px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-bold tracking-wider uppercase">Dashboard</span>
           </h1>
           <p className="text-gray-500 dark:text-slate-400">KDS System & Sales Dashboard</p>
         </div>
@@ -172,7 +172,7 @@ export const ShopDashboardPage = () => {
             >
                 <Utensils className="w-4 h-4" /> จัดการเมนู
             </button>
-            <button onClick={fetchShopData} className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 hover:rotate-180 transition-all shadow-lg shadow-blue-200">
+            <button onClick={fetchShopData} className="p-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 hover:rotate-180 transition-all shadow-lg shadow-slate-200">
                 <RefreshCw className="w-5 h-5" />
             </button>
         </div>
@@ -181,7 +181,7 @@ export const ShopDashboardPage = () => {
       {/* 💰 Revenue Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* ยอดขายรวม */}
-        <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-[2rem] p-8 text-white shadow-2xl shadow-amber-500/30 relative overflow-hidden md:col-span-2 group">
+        <div className="bg-gradient-to-br from-amber-500 to-amber-700 rounded-[2rem] p-8 text-white shadow-2xl shadow-amber-500/30 relative overflow-hidden md:col-span-2 group">
             <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10 group-hover:scale-110 transition-transform duration-700"></div>
             <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-3 opacity-90 font-bold text-amber-100">
@@ -198,7 +198,7 @@ export const ShopDashboardPage = () => {
         {/* รายละเอียดการเงิน */}
         <div className="bg-white dark:bg-slate-800/50 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 dark:shadow-black/50 border border-slate-100 dark:border-slate-700 md:col-span-2 flex flex-col justify-center">
             <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-blue-600" /> สรุปยอดรายได้
+                <Wallet className="w-5 h-5 text-amber-600" /> สรุปยอดรายได้
             </h3>
             <div className="space-y-3">
                 <div className="flex justify-between items-center text-gray-600 dark:text-slate-300">
@@ -222,14 +222,14 @@ export const ShopDashboardPage = () => {
       <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-2xl w-fit border border-slate-200 dark:border-slate-700">
         <button 
             onClick={() => setActiveTab('active')}
-            className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'active' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-md scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'}`}
+            className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'active' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-md scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'}`}
         >
             <Bell className="w-4 h-4" /> ออเดอร์ปัจจุบัน (KDS)
             {stats.pendingOrders > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse">{stats.pendingOrders}</span>}
         </button>
         <button 
             onClick={() => setActiveTab('history')}
-            className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'history' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-md scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'}`}
+            className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'history' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-md scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'}`}
         >
             <History className="w-4 h-4" /> ประวัติออเดอร์
         </button>
@@ -246,11 +246,11 @@ export const ShopDashboardPage = () => {
                         key={order.order_id} 
                         className={`
                             relative flex flex-col rounded-[1.5rem] border shadow-sm overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1 duration-300 group
-                            ${status === 'cooking' ? 'bg-slate-900 border-blue-500/50 ring-2 ring-blue-500/50 shadow-blue-900/20' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}
+                            ${status === 'cooking' ? 'bg-slate-900 border-amber-500/50 ring-2 ring-amber-500/50 shadow-amber-900/20' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}
                         `}
                     >
                         {/* Card Header */}
-                        <div className={`px-6 py-4 border-b flex justify-between items-center ${status === 'cooking' ? 'bg-blue-900/20 border-blue-800/50' : 'bg-slate-50/50 dark:bg-slate-700/30 dark:border-slate-700'}`}>
+                        <div className={`px-6 py-4 border-b flex justify-between items-center ${status === 'cooking' ? 'bg-amber-900/20 border-amber-800/50' : 'bg-slate-50/50 dark:bg-slate-700/30 dark:border-slate-700'}`}>
                             <div className="flex items-center gap-2">
                                 <span className={`text-xl font-black ${status === 'cooking' ? 'text-white' : 'text-gray-700'}`}>#{order.order_id}</span>
                                 <span className={`text-xs flex items-center gap-1 ${status === 'cooking' ? 'text-slate-400' : 'text-gray-500'}`}>
@@ -260,7 +260,7 @@ export const ShopDashboardPage = () => {
                             </div>
                             <div className={`
                                 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full
-                                ${status === 'cooking' ? 'bg-blue-500 text-white animate-pulse' : 
+                                ${status === 'cooking' ? 'bg-amber-500 text-white animate-pulse' : 
                                   status === 'paid' || status === 'completed' ? 'bg-green-100 text-green-700' :
                                   (status === 'pending_payment' || status === 'waiting') ? 'bg-orange-100 text-orange-700' :
                                   'bg-gray-200 text-gray-600'}
@@ -280,7 +280,7 @@ export const ShopDashboardPage = () => {
                             {/* Quantity (Big Font) */}
                             <div className="flex items-baseline gap-2 mt-2">
                                 <span className={`text-sm font-medium ${status === 'cooking' ? 'text-slate-400' : 'text-gray-400 dark:text-slate-500'}`}>QTY</span>
-                                <span className={`text-6xl font-black tracking-tighter ${status === 'cooking' ? 'text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'text-slate-800 dark:text-white'}`}>
+                                <span className={`text-6xl font-black tracking-tighter ${status === 'cooking' ? 'text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'text-slate-800 dark:text-white'}`}>
                                     {order.quantity}
                                 </span>
                             </div>
@@ -306,7 +306,7 @@ export const ShopDashboardPage = () => {
                                     </button>
                                     <button 
                                         onClick={() => handleStatusUpdate(order.order_id, 'cooking')}
-                                        className="py-5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 text-sm font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1"
+                                        className="py-5 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-600 dark:text-amber-400 text-sm font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1"
                                     >
                                         {/* ✅ ถ้าสถานะเป็น pending_payment ให้ปุ่มเป็น "ยืนยันยอด" แทน */}
                                         {(status === 'pending_payment' || status === 'waiting') ? (

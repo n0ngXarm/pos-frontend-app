@@ -199,23 +199,22 @@ export const CartPage = () => {
   if (items.length === 0 && savedItems.length === 0) {
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700">
-        <div className="relative mb-8 group">
-            <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-3xl group-hover:blur-xl transition-all duration-500"></div>
-            <div className="w-32 h-32 bg-gradient-to-br from-slate-100 to-white dark:from-slate-800 dark:to-slate-900 rounded-full flex items-center justify-center shadow-2xl border border-white/50 dark:border-slate-700 relative z-10">
-                <ShoppingBag className="w-14 h-14 text-slate-400 dark:text-slate-500 group-hover:scale-110 transition-transform duration-300" />
+        <div className="relative mb-6 group">
+            <div className="absolute inset-0 bg-blue-100/50 rounded-full blur-2xl group-hover:blur-xl transition-all duration-500"></div>
+            <div className="w-28 h-28 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-lg border border-slate-100 dark:border-slate-700 relative z-10">
+                <ShoppingBag className="w-12 h-12 text-slate-300 dark:text-slate-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
         </div>
-        <h2 className="text-4xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">Your Cart is Empty</h2>
-        <p className="text-slate-500 dark:text-slate-400 text-lg mb-8 max-w-md mx-auto">
-            Looks like you haven't added anything yet. Discover our premium menu and start your journey.
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">ตะกร้าของคุณว่างเปล่า</h2>
+        <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-sm mx-auto">
+            ยังไม่มีรายการอาหารในตะกร้า ลองเลือกดูเมนูอร่อยๆ จากร้านค้าของเราดูสิ
         </p>
         <button
           onClick={() => navigate('/shops')}
-          className="group relative px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold text-lg overflow-hidden shadow-xl shadow-slate-900/20 hover:shadow-2xl hover:shadow-blue-900/20 transition-all hover:-translate-y-1"
+          className="group relative px-8 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all hover:-translate-y-0.5"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <span className="relative flex items-center gap-3">
-             Start Shopping <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+             เลือกร้านอาหาร <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </span>
         </button>
       </div>
@@ -224,31 +223,25 @@ export const CartPage = () => {
 
   return (
     <div className="min-h-screen pb-40 relative bg-slate-50/50 dark:bg-slate-950">
-      {/* Background Elements */}
-      <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
-         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px]"></div>
-         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-amber-500/5 rounded-full blur-[120px]"></div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8">
         
         {/* Header: Progress Steps */}
         <div className="mb-8 md:mb-12">
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-400 mb-4 overflow-x-auto">
-                <span className="text-blue-600 dark:text-blue-400">Cart</span>
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-400 mb-4 overflow-x-auto">
+                <span className="text-blue-600 dark:text-blue-400 font-bold">ตะกร้าสินค้า</span>
                 <ChevronRight className="w-4 h-4" />
-                <span>Payment</span>
+                <span>ชำระเงิน</span>
                 <ChevronRight className="w-4 h-4" />
-                <span>Confirmation</span>
+                <span>เสร็จสิ้น</span>
             </div>
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-                        Shopping <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Cart</span>
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                        รายการอาหาร
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-green-500" /> 
-                        Secure Checkout • {items.length} Items
+                    <p className="text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 text-sm">
+                        <ShieldCheck className="w-4 h-4 text-green-600" /> 
+                        ปลอดภัย 100% • {items.length} รายการ
                     </p>
                 </div>
             </div>
@@ -268,15 +261,15 @@ export const CartPage = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, x: -100 }}
-                            className="group relative bg-white dark:bg-slate-800 rounded-3xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl hover:border-blue-200 dark:hover:border-blue-900 transition-all duration-300"
+                            className="group relative bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200"
                         >
                             <div className="flex gap-4 md:gap-6 items-center">
                                 {/* Image */}
-                                <div className="relative w-24 h-24 md:w-32 md:h-32 shrink-0 rounded-2xl overflow-hidden shadow-md bg-slate-100">
+                                <div className="relative w-20 h-20 md:w-28 md:h-28 shrink-0 rounded-xl overflow-hidden bg-slate-100">
                                     <img 
                                         src={item.image_url || "https://placehold.co/200"} 
                                         alt={item.menu_name} 
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                        className="w-full h-full object-cover"
                                     />
                                 </div>
 
@@ -284,27 +277,27 @@ export const CartPage = () => {
                                 <div className="flex-1 min-w-0 py-1 flex flex-col justify-between h-24 md:h-32">
                                     <div>
                                         <div className="flex justify-between items-start">
-                                            <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white truncate pr-4">{item.menu_name}</h3>
-                                            <p className="text-lg font-black text-amber-500 dark:text-amber-400">
+                                            <h3 className="text-base md:text-lg font-bold text-slate-900 dark:text-white truncate pr-4">{item.menu_name}</h3>
+                                            <p className="text-base font-bold text-slate-900 dark:text-white">
                                                 ฿{(Number(item.price) * item.quantity).toLocaleString()}
                                             </p>
                                         </div>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">฿{Number(item.price).toLocaleString()} / unit</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">฿{Number(item.price).toLocaleString()} / ชิ้น</p>
                                     </div>
 
                                     <div className="flex items-end justify-between">
                                         {/* Quantity Stepper */}
-                                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 rounded-xl p-1.5 border border-slate-200 dark:border-slate-700">
+                                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
                                             <button 
                                                 onClick={() => updateQuantity(item.menu_id, Math.max(1, item.quantity - 1))}
-                                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 active:scale-90 transition-all"
+                                                className="w-7 h-7 flex items-center justify-center bg-white dark:bg-slate-800 rounded-md shadow-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 active:scale-90 transition-all"
                                             >
                                                 <Minus className="w-4 h-4" />
                                             </button>
                                             <span className="font-bold w-8 text-center text-slate-900 dark:text-white">{item.quantity}</span>
                                             <button 
                                                 onClick={() => updateQuantity(item.menu_id, item.quantity + 1)}
-                                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 active:scale-90 transition-all"
+                                                className="w-7 h-7 flex items-center justify-center bg-white dark:bg-slate-800 rounded-md shadow-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 active:scale-90 transition-all"
                                             >
                                                 <Plus className="w-4 h-4" />
                                             </button>
@@ -313,18 +306,11 @@ export const CartPage = () => {
                                         {/* Actions */}
                                         <div className="flex gap-2">
                                             <button 
-                                                onClick={() => addToast('Saved for later', 'success')}
-                                                className="p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-xl transition-all"
-                                                title="Save for later"
-                                            >
-                                                <Heart className="w-5 h-5" />
-                                            </button>
-                                            <button 
                                                 onClick={() => removeItem(item.menu_id)}
-                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                                                 title="Remove"
                                             >
-                                                <Trash2 className="w-5 h-5" />
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
@@ -342,7 +328,7 @@ export const CartPage = () => {
                 <div className="sticky top-24 space-y-6">
                     <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 md:p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 border border-slate-100 dark:border-slate-700 relative overflow-hidden">
                         {/* Decorative Gradient */}
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full -mr-10 -mt-10 pointer-events-none"></div>
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-bl-full -mr-10 -mt-10 pointer-events-none"></div>
 
                         <h3 className="text-xl font-black text-slate-900 dark:text-white mb-6">Order Summary</h3>
 
@@ -374,7 +360,7 @@ export const CartPage = () => {
                         {/* Desktop CTA */}
                         <button
                             onClick={handleCheckoutClick}
-                            className="hidden md:flex w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-600/30 hover:shadow-blue-600/40 hover:scale-[1.02] active:scale-95 transition-all items-center justify-center gap-2 group"
+                            className="hidden md:flex w-full py-4 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white rounded-2xl font-bold text-lg shadow-lg shadow-slate-900/30 hover:shadow-slate-900/40 hover:scale-[1.02] active:scale-95 transition-all items-center justify-center gap-2 group"
                         >
                             Proceed to Checkout <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </button>
@@ -392,14 +378,14 @@ export const CartPage = () => {
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 pb-8 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-40">
         <div className="flex items-center justify-between gap-4">
             <div>
-                <p className="text-xs text-slate-500">Total</p>
-                <p className="text-2xl font-black text-slate-900 dark:text-white">฿{totalPrice.toLocaleString()}</p>
+                <p className="text-xs text-slate-500">ยอดรวม</p>
+                <p className="text-xl font-bold text-blue-600 dark:text-white">฿{totalPrice.toLocaleString()}</p>
             </div>
             <button
                 onClick={handleCheckoutClick}
-                className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold text-base shadow-lg shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-base shadow-lg shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-                Checkout <ArrowRight className="w-5 h-5" />
+                ชำระเงิน <ArrowRight className="w-5 h-5" />
             </button>
         </div>
       </div>
@@ -411,7 +397,7 @@ export const CartPage = () => {
                 {/* Modal Header */}
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10">
                     <h3 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                        <Wallet className="w-6 h-6 text-blue-600" /> Payment
+                        <Wallet className="w-6 h-6 text-amber-500" /> Payment
                     </h3>
                     <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
                         <X className="w-6 h-6 text-slate-500" />
@@ -431,14 +417,14 @@ export const CartPage = () => {
                                 onClick={() => setPaymentMethod(method.id as any)}
                                 className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-300 ${
                                     paymentMethod === method.id 
-                                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
-                                    : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
+                                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' 
+                                    : 'border-slate-200 dark:border-slate-700 hover:border-amber-300'
                                 }`}
                             >
                                 {paymentMethod === method.id && (
-                                    <div className="absolute top-3 right-3 text-blue-600"><CheckCircle2 className="w-5 h-5" /></div>
+                                    <div className="absolute top-3 right-3 text-amber-500"><CheckCircle2 className="w-5 h-5" /></div>
                                 )}
-                                <method.icon className={`w-8 h-8 mb-3 ${paymentMethod === method.id ? 'text-blue-600' : 'text-slate-400'}`} />
+                                <method.icon className={`w-8 h-8 mb-3 ${paymentMethod === method.id ? 'text-amber-500' : 'text-slate-400'}`} />
                                 <p className="font-bold text-slate-900 dark:text-white">{method.label}</p>
                                 <p className="text-xs text-slate-500">{method.desc}</p>
                             </button>
@@ -466,7 +452,7 @@ export const CartPage = () => {
 
                                     <div className="relative">
                                         <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" id="slip-upload-modal" />
-                                        <label htmlFor="slip-upload-modal" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all ${slipImage ? 'border-green-500 bg-green-50 dark:bg-green-900/10' : 'border-slate-300 hover:border-blue-500 hover:bg-blue-50'}`}>
+                                        <label htmlFor="slip-upload-modal" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all ${slipImage ? 'border-green-500 bg-green-50 dark:bg-green-900/10' : 'border-slate-300 hover:border-amber-500 hover:bg-amber-50'}`}>
                                             {slipImage ? (
                                                 <div className="text-green-600 flex flex-col items-center">
                                                     <CheckCircle2 className="w-8 h-8 mb-2" />
@@ -483,7 +469,7 @@ export const CartPage = () => {
 
                                     {slipImage && (
                                         <label className="flex items-start gap-3 cursor-pointer">
-                                            <input type="checkbox" checked={isRefIdConfirmed} onChange={e => setIsRefIdConfirmed(e.target.checked)} className="mt-1 w-4 h-4 text-blue-600 rounded" />
+                                            <input type="checkbox" checked={isRefIdConfirmed} onChange={e => setIsRefIdConfirmed(e.target.checked)} className="mt-1 w-4 h-4 text-amber-600 rounded" />
                                             <span className="text-sm text-slate-600 dark:text-slate-400">I have included Ref ID <b>{orderRef}</b> in the slip note.</span>
                                         </label>
                                     )}
@@ -509,7 +495,7 @@ export const CartPage = () => {
                                     <div className="text-center py-8">
                                         <Lock className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                                         <p className="text-slate-600 font-medium mb-4">Please link your card to unlock this feature</p>
-                                        <button onClick={() => setShowBindCard(true)} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-lg hover:bg-blue-700">Link Card</button>
+                                        <button onClick={() => setShowBindCard(true)} className="px-6 py-2 bg-slate-900 text-white rounded-lg font-bold shadow-lg hover:bg-slate-800">Link Card</button>
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-4 p-4 border border-slate-200 rounded-xl">
@@ -541,7 +527,7 @@ export const CartPage = () => {
                     <button 
                         onClick={handleConfirmOrder}
                         disabled={isCheckingOut || isVerifying || (paymentMethod === 'promptpay' && (!slipImage || !isRefIdConfirmed)) || (paymentMethod === 'credit' && !user?.is_plus_member)}
-                        className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-lg shadow-slate-900/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         {isCheckingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Payment'}
                     </button>

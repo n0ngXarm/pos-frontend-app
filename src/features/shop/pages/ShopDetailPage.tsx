@@ -89,40 +89,40 @@ export const ShopDetailPage = () => {
         }
       `}</style>
       {/* 🖼️ Header ร้านค้าแบบอลังการ */}
-      <div className="relative bg-gray-900 rounded-[2.5rem] shadow-2xl shadow-gray-900/30 overflow-hidden group h-[300px] md:h-[400px] flex items-end">
+      <div className="relative bg-slate-900 rounded-[2rem] shadow-lg overflow-hidden group h-[280px] md:h-[360px] flex items-end">
         {/* Background Image (Blurred) */}
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-60 group-hover:scale-110 transition-transform duration-[2s]"
+          className="absolute inset-0 bg-cover bg-center opacity-50 group-hover:scale-105 transition-transform duration-[2s]"
           style={{ backgroundImage: `url(${shop.image_url || "https://placehold.co/600x200"})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-900/80 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
 
         <div className="relative p-6 md:p-12 flex flex-col md:flex-row items-end gap-6 w-full">
         <button 
             onClick={() => navigate('/shops')} 
-            className="absolute top-4 left-4 md:top-6 md:left-6 p-3 bg-black/20 hover:bg-black/40 backdrop-blur-xl rounded-full shadow-lg z-10 text-white transition-all hover:scale-110 border border-white/10"
+            className="absolute top-4 left-4 md:top-6 md:left-6 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full shadow-lg z-10 text-white transition-all border border-white/10"
         >
             <ArrowLeft className="w-5 h-5" />
         </button>
 
         <img 
           src={shop.image_url || "https://placehold.co/100"} 
-          className="w-28 h-28 md:w-40 md:h-40 rounded-3xl object-cover shadow-2xl border-4 border-white/10 bg-gray-800 shrink-0 hidden md:block backdrop-blur-sm"
+          className="w-24 h-24 md:w-32 md:h-32 rounded-2xl object-cover shadow-xl border-2 border-white/10 bg-slate-800 shrink-0 hidden md:block"
         />
         
         <div className="text-center md:text-left flex-1">
           <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-             <span className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-amber-500/20"><Star className="w-3 h-3 fill-current" /> 4.8</span>
-             <span className="bg-green-500/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">Open Now</span>
+             <span className="bg-amber-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm"><Star className="w-3 h-3 fill-current" /> 4.8</span>
+             <span className="bg-green-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">Open Now</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-black text-white mb-3 tracking-tight drop-shadow-2xl">{shop.restaurant_name || "Unknown Restaurant"}</h1>
-          <div className="flex flex-col md:flex-row gap-4 text-gray-300 text-sm justify-center md:justify-start font-medium">
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-md">{shop.restaurant_name || "Unknown Restaurant"}</h1>
+          <div className="flex flex-col md:flex-row gap-4 text-slate-300 text-sm justify-center md:justify-start font-medium">
             <div className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-amber-500" /> 
+                <MapPin className="w-4 h-4 text-slate-400" /> 
                 <span>{shop.address || "-"}</span>
             </div>
             <div className="flex items-center gap-1.5">
-                <Phone className="w-4 h-4 text-amber-500" /> 
+                <Phone className="w-4 h-4 text-slate-400" /> 
                 <span>{shop.phone || "-"}</span>
             </div>
           </div>
@@ -133,7 +133,7 @@ export const ShopDetailPage = () => {
       {/* รายการเมนู */}
       <div>
         <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-100 rounded-xl text-blue-900">
+            <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
                 <Utensils className="w-6 h-6" />
             </div>
             <h2 className="text-2xl font-bold text-gray-800">เมนูแนะนำ</h2>

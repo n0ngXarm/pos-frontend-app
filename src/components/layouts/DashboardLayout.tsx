@@ -1,17 +1,12 @@
 // src/components/layouts/DashboardLayout.tsx
 import { useEffect, useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { Store, ShoppingBag, LogOut, ChefHat, Settings, Clock, User as UserIcon, Sun, Moon, Wallet, FileText, CreditCard, CheckCircle2, X, Landmark, Loader2, AlertTriangle, Menu, Bell, Search, ChevronRight, ShieldCheck } from 'lucide-react'; // เพิ่ม icon Settings
+import { Store, ShoppingBag, LogOut, ChefHat, Settings, Clock, User as UserIcon, Sun, Moon, Wallet, FileText, CheckCircle2, X, AlertTriangle, Search, ChevronRight, ShieldCheck, CreditCard, Sparkles, Menu } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { useCartStore } from '../../stores/useCartStore';
-import { ToastContainer } from '../ui/ToastContainer'; // ✅ Import ToastContainer
+import { ToastContainer } from '../ui/ToastContainer';
 import { api } from '../../lib/axios';
 
-const cn = (...inputs: Array<string | false | null | undefined>) => {
-  return inputs.filter(Boolean).join(' ');
-};
-
-// ✅ รายชื่อธนาคารสำหรับ Dropdown
 const THAI_BANKS = [
   { id: 'KBANK', name: 'ธนาคารกสิกรไทย (KBANK)' },
   { id: 'SCB', name: 'ธนาคารไทยพาณิชย์ (SCB)' },
@@ -27,34 +22,30 @@ export const DashboardLayout = () => {
   const { logout, user, login, token } = useAuthStore();
   const location = useLocation();
 
-  // ✅ State สำหรับ Theme (Dark/Light)
+  // State
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false); // ✅ Modal ถอนเงิน
-  const [withdrawAmount, setWithdrawAmount] = useState(''); // ✅ จำนวนเงินที่จะถอน
-  const [balance, setBalance] = useState(0); // ✅ ยอดเงินที่ถอนได้
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [balance, setBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
-  const [bankName, setBankName] = useState(''); // ✅ ชื่อธนาคาร (กรณีไม่มีบัตร)
-  const [accountNumber, setAccountNumber] = useState(''); // ✅ เลขบัญชี (กรณีไม่มีบัตร)
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
 
-  // ตั้งค่าเริ่มต้น: ถ้าไม่ใช่ USER (เช่น Admin/Shop) ให้เป็น Dark Mode โดยอัตโนมัติ
+  // Initial Theme Setup
   useEffect(() => {
     setIsDarkMode(user?.role !== 'USER');
   }, [user?.role]);
 
-  // ✅ Sync ข้อมูล User ล่าสุดจาก Server เสมอ (แก้ปัญหา Logout แล้วสถานะหาย)
+  // Sync User Status
   useEffect(() => {
     const syncUserStatus = async () => {
       if (user?.id) {
         try {
           const { data } = await api.get(`/customers/${user.id}`);
-          // ถ้าสถานะใน DB เป็น Plus แต่ใน Store ยังไม่ใช่ -> อัปเดต Store ทันที
           if (data.is_plus_member !== user.is_plus_member) {
-            const updatedUser = { ...user, is_plus_member: data.is_plus_member };
-            login(updatedUser, token || '');
+            login({ ...user, is_plus_member: data.is_plus_member }, token || '');
           }
         } catch (error: any) {
-          console.error("Failed to sync user status", error);
-          // ✅ Fix: ถ้าหา User ไม่เจอ (404) หรือ Server Error (500 - มักเกิดจาก DB Reset) ให้ Logout อัตโนมัติ
           if (error.response && (error.response.status === 404 || error.response.status === 500)) {
             logout();
           }
@@ -62,77 +53,42 @@ export const DashboardLayout = () => {
       }
     };
     syncUserStatus();
-  }, [user?.id]); // ทำงานเมื่อ user.id เปลี่ยน (เช่น ตอน Login ใหม่)
+  }, [user?.id]);
   
-  // 🛒 ดึงจำนวนสินค้าในตะกร้ามาแสดง
   const cartItems = useCartStore((state) => state.items);
   const cartCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
-  // ✅ Fetch Balance เมื่อเปิด Modal
+  // Fetch Balance Logic (Preserved)
   useEffect(() => {
     if (showWithdrawModal && user?.is_plus_member) {
       const fetchBalance = async () => {
         setIsLoadingBalance(true);
         try {
-            // 1. หา Restaurant ของ User คนนี้
             const { data: restaurants } = await api.get('/restaurants');
-            console.log("Debug - User ID:", user.id);
-            
             const myShop = restaurants.find((r: any) => 
                 String(r.owner_id) === String(user.id) || Number(r.owner_id) === Number(user.id)
             );
-            console.log("Debug - Found Shop:", myShop ? `ID: ${myShop.id}` : "Not Found");
-            console.log("Debug - My Shop:", myShop);
-            
 
             if (myShop) {
-                // 2. ดึง Orders ของร้านนี้ (รวม Paid และ Completed)
                 const { data: orders } = await api.get('/orders');
-                
-                // ✅ รองรับทั้ง id และ restaurant_id (แปลงเป็น String เพื่อความชัวร์ในการเทียบ)
                 const shopIds = [myShop.id, myShop.restaurant_id].filter(Boolean).map(id => String(id));
-                
                 const shopOrders = orders.filter((o: any) => {
-                    // 1. ต้องเป็นออเดอร์ของร้านเรา
-                    // ✅ Fix: รองรับ field restaurantId (camelCase) และ restaurant_id (snake_case)
                     const orderRestaurantId = o.restaurant_id || o.restaurantId;
                     const isMyShop = shopIds.includes(String(orderRestaurantId));
-                    
-                    // 2. สถานะต้องไม่ใช่ "รอจ่าย" หรือ "ยกเลิก" (รวม paid, preparing, ready, completed, credit_pending)
-                    // ✅ Fix: Normalize status เป็น lowercase เพื่อป้องกัน case sensitivity issue
                     const status = String(o.order_status || o.status || '').toLowerCase();
-                    
-                    // ⚠️ แก้ไขแบบสุดซอย: นับทุกสถานะ ยกเว้นที่มีคำว่า "cancel" (ยกเลิก)
-                    // เพื่อให้มั่นใจว่ายอดขายขึ้นแน่นอน ไม่ว่าจะเป็น pending, paid, completed, ready ฯลฯ
                     const isValidStatus = !status.includes('cancel');
-                    
-                    // Debug: ช่วยตรวจสอบว่าทำไมออเดอร์ถึงไม่ถูกนับ
-                    if (isMyShop && !isValidStatus) {
-                        console.log(`Order ${o.id} ignored due to status: ${status}`);
-                    }
-
-                    // ✅ นับรวมทุกช่องทางชำระเงิน (รวม Cash) เพื่อให้เห็นยอดรายได้ทั้งหมด
                     return isMyShop && isValidStatus;
                 });
                 
-                // 3. คำนวณยอดรวม
                 const totalSales = shopOrders.reduce((sum: number, o: any) => {
-                    // รองรับกรณีราคาเป็น String ที่มีลูกน้ำ (เช่น "1,200.00")
-                    // ✅ Fix: ใช้ Regex ดึงเฉพาะตัวเลขและจุดทศนิยม (ตัด ฿, ลูกน้ำ, ตัวหนังสือออกหมด)
                     const rawPrice = o.total_price || o.totalPrice || 0;
                     const cleanPrice = String(rawPrice).replace(/[^0-9.-]+/g, "");
                     const price = parseFloat(cleanPrice);
-
                     return sum + (isNaN(price) ? 0 : price);
                 }, 0);
                 
-                console.log(`Debug - Total Sales: ${totalSales} from ${shopOrders.length} orders`);
-                
-                // ✅ หักค่าบริการ Platform 1% (ตามหน้า Dashboard)
                 const gpDeduction = totalSales * 0.01; 
-                const netIncome = totalSales - gpDeduction;
-                
-                setBalance(netIncome);
+                setBalance(totalSales - gpDeduction);
             } else {
                 setBalance(0);
             }
@@ -147,326 +103,268 @@ export const DashboardLayout = () => {
     }
   }, [showWithdrawModal, user]);
 
-  // ✅ ฟังก์ชันส่งคำร้องถอนเงิน (ย้ายมาจาก SettingsPage)
+  // Withdraw Submit Logic (Preserved)
   const handleWithdrawSubmit = () => {
     const amount = Number(withdrawAmount);
-
-    if (!withdrawAmount || amount <= 0) {
-        alert('กรุณาระบุจำนวนเงินที่ถูกต้อง');
-        return;
-    }
+    if (!withdrawAmount || amount <= 0) { alert('กรุณาระบุจำนวนเงินที่ถูกต้อง'); return; }
+    if (amount > balance) { alert(`ยอดเงินในบัญชีไม่เพียงพอ (มีอยู่ ฿${balance.toLocaleString()})`); return; }
+    if (!user?.credit_card_last4 && (!bankName.trim() || !accountNumber.trim())) { alert('กรุณาระบุชื่อธนาคารและเลขบัญชี'); return; }
     
-    // 1. เช็คยอดเงิน
-    if (amount > balance) {
-        alert(`ยอดเงินในบัญชีไม่เพียงพอ (มีอยู่ ฿${balance.toLocaleString()})`);
-        return;
-    }
-
-    // 2. เช็คบัญชีรับเงิน (ถ้าไม่มีบัตรผูกไว้ ต้องกรอก)
-    if (!user?.credit_card_last4) {
-        if (!bankName.trim() || !accountNumber.trim()) {
-            alert('กรุณาระบุชื่อธนาคารและเลขบัญชีเพื่อรับเงิน');
-            return;
-        }
-    }
-    
-    // จำลองการส่งคำร้อง
-    const confirmMsg = user?.credit_card_last4 
-        ? `ยืนยันการส่งคำร้องขอถอนเงินจำนวน ${amount.toLocaleString()} บาท?`
-        : `ยืนยันการโอนเงิน ${amount.toLocaleString()} บาท เข้าบัญชี ${bankName} (${accountNumber})?`;
-
-    const confirm = window.confirm(confirmMsg);
-    if (confirm) {
-        // Simulate API delay
+    if (confirm(`ยืนยันการถอนเงินจำนวน ${amount.toLocaleString()} บาท?`)) {
         setTimeout(() => {
             alert('✅ ส่งคำร้องเรียบร้อยแล้ว\n\nระบบได้รับเอกสารคำร้องของท่านแล้ว กรุณารอการตรวจสอบและโอนเงินคืนภายใน 2-3 วันทำการ');
             setShowWithdrawModal(false);
             setWithdrawAmount('');
-            setBankName('');
-            setAccountNumber('');
         }, 500);
     }
   };
 
-  // 1. แยกเมนูตาม Role
+  // Navigation Items
   const adminNavItems = [
     { label: 'จัดการร้านค้า', href: '/admin/shops', icon: Store },
-    { label: 'ห้องครัว (ออเดอร์)', href: '/admin/orders', icon: ChefHat },
-    { label: 'ตั้งค่าบัญชี', href: '/settings', icon: Settings }, // ✅ เพิ่มเมนู
+    { label: 'ออเดอร์', href: '/admin/orders', icon: ChefHat },
+    { label: 'ตั้งค่า', href: '/settings', icon: Settings },
   ];
 
   const userNavItems = [
-    { label: 'เลือกร้านอาหาร', href: '/shops', icon: Store },
-    { label: 'ตะกร้าสินค้า', href: '/cart', icon: ShoppingBag },
-    { label: 'ประวัติการสั่งซื้อ', href: '/orders', icon: Clock }, // 👈 เพิ่มเมนูนี้
-    // ✅ เพิ่มเมนูพิเศษสำหรับ User Plus เท่านั้น
+    { label: 'เลือกร้าน', href: '/shops', icon: Store },
+    { label: 'ตะกร้า', href: '/cart', icon: ShoppingBag },
+    { label: 'ประวัติ', href: '/orders', icon: Clock },
     ...(user?.is_plus_member ? [
-      { label: 'จัดการร้านของฉัน', href: '/my-shop', icon: ChefHat },
-      { label: 'ถอนเงิน', icon: Wallet, onClick: () => setShowWithdrawModal(true) } // ✅ ปุ่มถอนเงิน (Action)
+      { label: 'ร้านของฉัน', href: '/my-shop', icon: ChefHat },
+      { label: 'ถอนเงิน', icon: Wallet, onClick: () => setShowWithdrawModal(true) }
     ] : []),
-    { label: 'ตั้งค่าบัญชี', href: '/settings', icon: Settings }, // ✅ เพิ่มเมนู
+    { label: 'ตั้งค่า', href: '/settings', icon: Settings },
   ];
 
   const navItems = user?.role === 'ADMIN' ? adminNavItems : userNavItems;
-
-  // 🎨 Theme Config
   const isLight = !isDarkMode;
   
   return (
-    <div className={`min-h-screen flex relative transition-colors duration-500 overflow-hidden font-sans ${isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100 dark'}`}>
+    <div className={`min-h-screen flex relative transition-colors duration-700 overflow-hidden font-sans ${isLight ? 'bg-slate-50 text-slate-900' : 'bg-[#020617] text-slate-100'}`}>
       
-      {/* ✨ Global Styles & Animations */}
-      <style>{`
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
-        }
-        .animate-blob { animation: blob 10s infinite; }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .glass-panel-light { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.5); }
-      `}</style>
-
-      {/* 🔔 ระบบแจ้งเตือน Global Popup */}
       <ToastContainer />
 
-      {/* 🌟 Background Effects */}
+      {/* 🌟 Dynamic Background Effects */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {isLight ? (
           <>
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-50 via-white to-blue-50/30"></div>
-            <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-200/20 rounded-full blur-[120px] animate-blob"></div>
-            <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-amber-200/20 rounded-full blur-[120px] animate-blob animation-delay-2000"></div>
+            <div className="absolute inset-0 bg-[#F8FAFC]"></div>
+            <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-blue-100/40 rounded-full blur-[120px] opacity-60"></div>
+            <div className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-amber-50/60 rounded-full blur-[120px] opacity-60"></div>
           </>
         ) : (
           <>
-            <div className="absolute top-0 left-0 w-full h-full bg-slate-950"></div>
-            <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-blue-900/10 rounded-full blur-[150px] animate-blob"></div>
-            <div className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-amber-900/5 rounded-full blur-[150px] animate-blob animation-delay-4000"></div>
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+            <div className="absolute inset-0 bg-[#0B1120]"></div>
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03]"></div>
+            <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-blue-900/20 rounded-full blur-[150px] animate-blob"></div>
+            <div className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-amber-900/20 rounded-full blur-[150px] animate-blob animation-delay-4000"></div>
           </>
         )}
       </div>
 
-      {/* 🖥️ Desktop Sidebar */}
-      <aside className={`hidden md:flex flex-col w-72 fixed inset-y-0 left-0 z-50 border-r transition-all duration-300 ${isLight ? 'bg-white/80 border-slate-200/50' : 'bg-slate-900/80 border-white/5'} backdrop-blur-xl`}>
-         {/* Logo Area */}
-         <div className="h-24 flex items-center px-8">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-600/20">
-                <ChefHat className="w-6 h-6 text-white" />
+      {/* 🖥️ Desktop Sidebar (Luxury Glass) */}
+      <aside className={`hidden md:flex flex-col w-72 fixed inset-y-0 left-0 z-50 border-r transition-all duration-300 ${isLight ? 'bg-white/70 border-slate-200/50' : 'bg-[#0F172A]/80 border-white/5'} backdrop-blur-2xl`}>
+         {/* Logo */}
+         <div className="h-28 flex items-center px-8 relative overflow-hidden">
+            {/* <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${isLight ? 'from-blue-400 to-amber-400' : 'from-blue-600 to-amber-500'}`}></div> */}
+            <div className="flex items-center gap-4 group cursor-pointer">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-105 ${isLight ? 'bg-blue-600 text-white' : 'bg-amber-500 text-white'}`}>
+                <ChefHat className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-black tracking-tight leading-none">
-                  <span className="text-blue-600 dark:text-blue-400">Kitchen</span>
-                  <span className="text-amber-500">OS</span>
+                <h1 className={`text-xl font-bold tracking-tight leading-none ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  Street<span className={isLight ? 'text-blue-600' : 'text-amber-400'}>Eats</span>
                 </h1>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Enterprise</p>
+                <p className={`text-[10px] font-medium uppercase tracking-wider mt-0.5 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {user?.role === 'ADMIN' ? 'Admin Console' : 'Premium Delivery'}
+                </p>
               </div>
             </div>
          </div>
 
-         {/* Navigation */}
+         {/* Nav */}
          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-            <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Menu</p>
-            {navItems.map((item, idx) => (
-              item.href ? (
-              <NavLink
-                key={item.href || idx}
-                to={item.href}
-                className={({ isActive }) => `relative flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden ${
-                  isActive 
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-600/20 translate-x-1' 
-                    : 'hover:bg-slate-100 dark:hover:bg-white/5'
-                }`}
-              >
-                {({ isActive }) => (
-                  <>
-                    <item.icon className={`w-5 h-5 transition-all duration-300 ${isActive ? 'text-white scale-110' : 'text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`} />
-                    <span className={`font-medium tracking-wide ${isActive ? 'text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
+            <p className={`px-4 text-[10px] font-bold uppercase tracking-widest mb-4 ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>Main Menu</p>
+            {navItems.map((item, idx) => {
+              const Icon = item.icon;
+              const content = (isActive: boolean) => (
+                <>
+                    {/* <div className={`absolute left-0 w-1 h-8 rounded-r-full transition-all duration-300 ${isActive ? 'bg-amber-500 scale-y-100' : 'bg-transparent scale-y-0'}`}></div> */}
+                    <Icon className={`w-5 h-5 transition-all duration-300 ${isActive ? 'text-blue-600 dark:text-amber-400' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
+                    <span className={`font-medium tracking-wide transition-colors ${isActive ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
                       {item.label}
                     </span>
-                    {isActive && (
-                      <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
-                    )}
                     {item.href === '/cart' && cartCount > 0 && (
-                      <span className="absolute right-3 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-lg animate-pulse">
+                      <span className="ml-auto bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                         {cartCount}
                       </span>
                     )}
-                  </>
-                )}
-              </NavLink>
+                </>
+              );
+
+              return item.href ? (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  className={({ isActive }) => `relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                    isActive ? 'bg-blue-50 dark:bg-white/5 text-blue-700 dark:text-white' : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                  }`}
+                >
+                  {({ isActive }) => content(isActive)}
+                </NavLink>
               ) : (
-                // ✅ กรณีเป็นปุ่ม Action (เช่น ถอนเงิน)
                 <button
                   key={idx}
                   onClick={item.onClick}
-                  className={`relative flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden w-full text-left hover:bg-slate-100 dark:hover:bg-white/5`}
+                  className="relative w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group hover:bg-slate-50 dark:hover:bg-white/5 text-left"
                 >
-                  <item.icon className="w-5 h-5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
-                  <span className="font-medium tracking-wide text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white">
-                    {item.label}
-                  </span>
+                  {content(false)}
                 </button>
-              )
-            ))}
+              );
+            })}
          </nav>
 
-         {/* User Profile Footer */}
-         <div className={`p-4 m-4 rounded-2xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/5'}`}>
-            <div className="flex items-center gap-3 mb-3">
-               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold shadow-md">
-                  {user?.username?.charAt(0).toUpperCase()}
-               </div>
-               <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold truncate text-slate-900 dark:text-white">{user?.username}</p>
-                  <p className="text-xs text-slate-500 truncate">{user?.role}</p>
-               </div>
-            </div>
-            <div className="flex gap-2">
-               <button 
-                  onClick={() => setIsDarkMode(!isDarkMode)}
-                  className="flex-1 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-               >
-                  {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-               </button>
-               <button 
-                  onClick={() => { if(confirm('Logout?')) logout(); }}
-                  className="flex-1 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 flex items-center justify-center text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-               >
-                  <LogOut className="w-4 h-4" />
-               </button>
-            </div>
+         {/* Footer Profile */}
+         <div className="p-4">
+           <div className={`p-4 rounded-2xl border backdrop-blur-md ${isLight ? 'bg-white/60 border-slate-200/60 shadow-sm' : 'bg-white/5 border-white/10'}`}>
+              <div className="flex items-center gap-3 mb-4">
+                 <div className="w-10 h-10 rounded-full p-0.5 bg-slate-100 dark:bg-slate-800">
+                    <div className="w-full h-full rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
+                       <UserIcon className="w-5 h-5 text-white" />
+                    </div>
+                 </div>
+                 <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-amber-100'}`}>{user?.username}</p>
+                    <p className="text-xs text-slate-500 truncate">{user?.role}</p>
+                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                 <button onClick={() => setIsDarkMode(!isDarkMode)} className={`py-2 rounded-lg flex items-center justify-center transition-all border ${isLight ? 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600' : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-300'}`}>
+                    {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                 </button>
+                 <button onClick={() => confirm('Logout?') && logout()} className="py-2 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600 flex items-center justify-center transition-all border border-transparent hover:border-red-200">
+                    <LogOut className="w-4 h-4" />
+                 </button>
+              </div>
+           </div>
          </div>
       </aside>
 
-      {/* 📱 Mobile Header & Content Wrapper */}
-      <div className="flex-1 flex flex-col md:ml-72 min-h-screen relative z-10">
-         {/* Header */}
-         <header className={`h-20 sticky top-0 z-40 px-4 md:px-8 flex items-center justify-between transition-all duration-300 ${isLight ? 'bg-white/80 border-b border-slate-200/50' : 'bg-slate-900/80 border-b border-white/5'} backdrop-blur-md`}>
+      {/* 📱 Mobile Content Wrapper */}
+      <div className="flex-1 flex flex-col md:ml-72 min-h-screen relative z-10 transition-all duration-500">
+         {/* Header (Glass) */}
+         <header className={`h-16 md:h-20 sticky top-0 z-40 px-4 md:px-8 flex items-center justify-between transition-all duration-300 ${isLight ? 'bg-white/80 border-b border-slate-200/50' : 'bg-[#020617]/80 border-b border-white/5'} backdrop-blur-xl`}>
             {/* Mobile Logo */}
             <div className="md:hidden flex items-center gap-2">
-               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md">
                   <ChefHat className="w-5 h-5" />
                </div>
-               <span className="font-bold text-lg text-slate-900 dark:text-white">KitchenOS</span>
+               <span className={`font-bold text-lg ${isLight ? 'text-slate-900' : 'text-white'}`}>Street<span className="text-blue-600">Eats</span></span>
             </div>
 
-            {/* Desktop Breadcrumbs / Title */}
-            <div className="hidden md:flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-               <span className="hover:text-blue-500 cursor-pointer">Dashboard</span>
-               <ChevronRight className="w-4 h-4" />
-               <span className="text-slate-900 dark:text-white font-medium">Overview</span>
+            {/* Desktop Breadcrumbs */}
+            <div className="hidden md:flex items-center gap-2 text-sm">
+               <span className="text-slate-400">Dashboard</span>
+               <ChevronRight className="w-4 h-4 text-slate-600" />
+               <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-amber-200'}`}>Overview</span>
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-3 md:gap-4">
-               <div className="relative hidden md:block">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Search..." 
-                    className={`pl-10 pr-4 py-2 rounded-full text-sm outline-none border transition-all focus:ring-2 focus:ring-blue-500 ${isLight ? 'bg-slate-100 border-transparent focus:bg-white' : 'bg-white/5 border-white/10 focus:bg-black/20 text-white'}`}
-                  />
-               </div>
-               <button className={`p-2.5 rounded-full relative transition-all ${isLight ? 'hover:bg-slate-100 text-slate-600' : 'hover:bg-white/10 text-slate-300'}`}>
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
-               </button>
+            <div className="flex items-center gap-3">
                <div className="md:hidden">
-                  <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2.5 rounded-full ${isLight ? 'hover:bg-slate-100 text-slate-600' : 'hover:bg-white/10 text-slate-300'}`}>
-                     {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                  <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2.5 rounded-full ${isLight ? 'bg-slate-100 text-slate-600' : 'bg-white/10 text-amber-200'}`}>
+                     {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   </button>
+               </div>
+               <button className={`p-2 rounded-full relative transition-transform hover:scale-105 ${isLight ? 'bg-white border border-slate-200 text-slate-600' : 'bg-white/5 text-slate-300 border border-white/5'}`}>
+                  <Sparkles className="w-4 h-4" />
+               </button>
+               {/* Avatar for Mobile */}
+               <div className="md:hidden w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 text-xs font-bold">
+                 {user?.username?.charAt(0).toUpperCase()}
                </div>
             </div>
          </header>
 
-         {/* Main Content */}
-         <main className="flex-1 p-4 md:p-8 w-full max-w-7xl mx-auto pb-24 md:pb-8">
+         {/* Main Content Area */}
+         <main className="flex-1 p-4 md:p-8 w-full max-w-7xl mx-auto pb-28 md:pb-8">
             <Outlet />
          </main>
       </div>
 
-      {/* 📱 Mobile Bottom Dock */}
-      <nav className="md:hidden fixed bottom-6 left-4 right-4 z-50">
-        <div className={`rounded-2xl p-2 flex items-center justify-around shadow-2xl border ${isLight ? 'bg-white/90 border-white/50 shadow-slate-200/50' : 'bg-slate-900/90 border-white/10 shadow-black/50'} backdrop-blur-xl`}>
+      {/* 📱 Mobile Floating Dock (เกาะลอยหรูหรา) */}
+      <nav className="md:hidden fixed bottom-4 left-4 right-4 z-50">
+        <div className={`rounded-2xl px-6 py-3 flex items-center justify-between shadow-xl backdrop-blur-xl border ${isLight ? 'bg-white/90 border-slate-200/50 shadow-slate-200/50' : 'bg-[#0F172A]/90 border-white/10 shadow-black/50'}`}>
             {navItems.map((item, idx) => {
               const isActive = item.href ? location.pathname === item.href : false;
-              const Icon = item.icon;
-              
               if (!item.href && !item.onClick) return null;
-
+              
               return (
                 <button
                   key={idx}
                   onClick={() => item.href ? window.location.href = item.href : item.onClick?.()}
-                  className={`relative flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 ${
-                    isActive 
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 -translate-y-4 scale-110' 
-                      : 'text-slate-400 hover:text-blue-500'
-                  }`}
+                  className="relative group flex flex-col items-center justify-center"
                 >
-                  <Icon className="w-5 h-5" />
-                  {item.href === '/cart' && cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900">
-                      {cartCount}
-                    </span>
-                  )}
+                  <div className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 ${isActive ? (isLight ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 -translate-y-2' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 -translate-y-2') : 'text-slate-400'}`}>
+                     <item.icon className="w-5 h-5" />
+                     {item.href === '/cart' && cartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-slate-900">
+                           {cartCount}
+                        </span>
+                     )}
+                  </div>
+                  {/* {isActive && <div className={`absolute -bottom-2 w-1 h-1 rounded-full ${isLight ? 'bg-blue-600' : 'bg-amber-400'}`}></div>} */}
                 </button>
               );
             })}
         </div>
       </nav>
 
-      {/* 📄 Withdrawal Modal (ย้ายมาไว้ Global) */}
+      {/* 💎 Luxury Withdrawal Modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-            <div className={`rounded-2xl w-full max-w-lg shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] ${isLight ? 'bg-white' : 'bg-slate-900 border border-white/10'}`}>
-                {/* Header */}
-                <div className={`p-6 border-b flex justify-between items-start ${isLight ? 'bg-slate-50 border-slate-100' : 'bg-white/5 border-white/5'}`}>
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-xl shadow-lg shadow-amber-500/20">
-                            <Wallet className="w-6 h-6" />
-                        </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className={`w-full max-w-md rounded-3xl relative overflow-hidden shadow-2xl border transition-all transform scale-100 ${isLight ? 'bg-white border-white/50' : 'bg-[#0F172A] border-amber-500/30'}`}>
+                {/* Gold Header Line */}
+                <div className="h-1.5 w-full bg-gradient-to-r from-amber-300 via-amber-500 to-amber-300"></div>
+                
+                <div className="p-6 md:p-8">
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Withdraw Funds</h3>
-                            <p className="text-xs text-slate-500">Transfer earnings to your account</p>
+                           <h3 className={`text-2xl font-black ${isLight ? 'text-slate-800' : 'text-white'}`}>Withdraw</h3>
+                           <p className="text-sm text-slate-400">Transfer earnings to your bank</p>
                         </div>
+                        <button onClick={() => setShowWithdrawModal(false)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                            <X className="w-6 h-6 text-slate-400" />
+                        </button>
                     </div>
-                    <button onClick={() => setShowWithdrawModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                        <X className="w-6 h-6" />
-                    </button>
-                </div>
 
-                {/* Content */}
-                <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
-                    {/* Balance Card */}
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-xl shadow-blue-600/20 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                        <p className="text-blue-100 text-sm font-medium mb-1">Available Balance</p>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-black tracking-tight">฿{isLoadingBalance ? '...' : balance.toLocaleString()}</span>
-                            <span className="text-sm opacity-80">THB</span>
-                        </div>
-                        <div className="mt-4 flex items-center gap-2 text-xs text-blue-200 bg-black/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm">
-                            <ShieldCheck className="w-3 h-3" /> Secure Transaction
+                    {/* Balance Card (Gold/Blue Gradient) */}
+                    <div className={`p-6 rounded-2xl mb-6 relative overflow-hidden shadow-lg ${isLight ? 'bg-gradient-to-br from-blue-600 to-indigo-700' : 'bg-gradient-to-br from-amber-600 to-amber-800'}`}>
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                        <div className="relative z-10 text-white">
+                            <p className="text-sm opacity-80 font-medium mb-1">Available Balance</p>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-4xl font-black tracking-tight text-shadow">฿{isLoadingBalance ? '...' : balance.toLocaleString()}</span>
+                            </div>
+                            <div className="mt-4 flex items-center gap-2 text-[10px] uppercase tracking-wider opacity-70">
+                                <ShieldCheck className="w-3 h-3" /> Encrypted & Secure
+                            </div>
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Amount</label>
+                    {/* Input Area */}
+                    <div className="space-y-5">
+                        <div className="relative">
+                            <label className={`absolute -top-2.5 left-4 px-1 text-xs font-bold ${isLight ? 'bg-white text-slate-500' : 'bg-[#0F172A] text-slate-400'}`}>Amount</label>
                             <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">฿</span>
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">฿</span>
                                 <input 
                                     type="number" 
                                     value={withdrawAmount}
                                     onChange={(e) => setWithdrawAmount(e.target.value)}
-                                    className={`w-full pl-10 pr-4 py-3.5 rounded-xl border outline-none font-mono text-lg font-bold transition-all focus:ring-2 focus:ring-blue-500 ${isLight ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-black/20 border-white/10 text-white'}`}
+                                    className={`w-full pl-10 pr-4 py-4 rounded-xl border-2 outline-none font-mono text-xl font-bold transition-all focus:ring-0 ${isLight ? 'bg-slate-50 border-slate-100 focus:border-blue-500 text-slate-900' : 'bg-white/5 border-white/10 focus:border-amber-500 text-white'}`}
                                     placeholder="0.00"
                                     autoFocus
                                 />
@@ -474,15 +372,11 @@ export const DashboardLayout = () => {
                         </div>
 
                         {!user?.credit_card_last4 && (
-                            <div className="space-y-4 pt-2">
-                                <div className="p-3 border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-center text-amber-700 dark:text-amber-400 text-xs flex items-center justify-center gap-2">
-                                    <AlertTriangle className="w-4 h-4" />
-                                    Please provide bank details
-                                </div>
+                            <div className="space-y-4 animate-slide-up">
                                 <select 
                                     value={bankName}
                                     onChange={(e) => setBankName(e.target.value)}
-                                    className={`w-full px-4 py-3 rounded-xl border outline-none text-sm appearance-none cursor-pointer ${isLight ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-black/20 border-white/10 text-white'}`}
+                                    className={`w-full px-4 py-3.5 rounded-xl border outline-none text-sm ${isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/5 border-white/10 text-slate-300'}`}
                                 >
                                     <option value="">-- Select Bank --</option>
                                     {THAI_BANKS.map((bank) => (
@@ -494,24 +388,19 @@ export const DashboardLayout = () => {
                                     placeholder="Account Number"
                                     value={accountNumber}
                                     onChange={(e) => setAccountNumber(e.target.value)}
-                                    className={`w-full px-4 py-3 rounded-xl border outline-none font-mono text-sm ${isLight ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-black/20 border-white/10 text-white'}`}
+                                    className={`w-full px-4 py-3.5 rounded-xl border outline-none font-mono text-sm ${isLight ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-white/5 border-white/10 text-white'}`}
                                 />
                             </div>
                         )}
-                    </div>
-                </div>
 
-                {/* Footer */}
-                <div className={`p-6 border-t flex justify-end gap-3 ${isLight ? 'bg-slate-50 border-slate-100' : 'bg-white/5 border-white/5'}`}>
-                    <button onClick={() => setShowWithdrawModal(false)} className="px-5 py-2.5 text-slate-500 font-bold text-sm hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors">Cancel</button>
-                    <button 
-                        onClick={handleWithdrawSubmit} 
-                        disabled={isLoadingBalance}
-                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2 disabled:opacity-50"
-                    >
-                        {isLoadingBalance ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} 
-                        Confirm Withdrawal
-                    </button>
+                        <button 
+                            onClick={handleWithdrawSubmit} 
+                            disabled={isLoadingBalance}
+                            className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 ${isLight ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20' : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 shadow-amber-500/20'}`}
+                        >
+                            {isLoadingBalance ? 'Processing...' : 'Confirm Withdrawal'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

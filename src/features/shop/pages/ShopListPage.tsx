@@ -77,20 +77,20 @@ export const ShopListPage = () => {
   return (
     <div className={`space-y-8 pb-32 transition-all duration-500 ease-in-out ${isExiting ? 'opacity-0 scale-95 translate-y-4 filter blur-sm' : 'opacity-100 scale-100 translate-y-0 blur-0'}`}>
       {/* 🌟 Hero Section (Clean & Friendly) */}
-      <div className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-900 text-white p-8 md:p-16 shadow-2xl shadow-blue-900/30 group">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/20 rounded-full blur-[100px] -mr-20 -mt-20 animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/20 rounded-full blur-[80px] -ml-10 -mb-10"></div>
+      <div className="relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-8 md:p-12 shadow-xl shadow-slate-200/50 dark:shadow-none border border-white/10">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] -ml-10 -mb-10"></div>
         
         <div className="relative z-10 max-w-2xl">
           <div className="flex items-center gap-2 mb-6">
-             <span className="inline-flex items-center gap-1 px-4 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 text-amber-300 text-xs font-bold rounded-full tracking-widest uppercase shadow-lg">
-                <Sparkles className="w-3 h-3" /> Premium Selection
+             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 text-white/90 text-xs font-medium rounded-full tracking-wide">
+                <Sparkles className="w-3 h-3 text-amber-400" /> Premium Selection
              </span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight tracking-tight drop-shadow-lg">
-            ค้นพบความอร่อย <br/><span className="text-amber-400">จากร้านค้าชั้นนำ</span>
+          <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight tracking-tight">
+            ค้นพบความอร่อย <br/><span className="text-blue-400">จากร้านค้าชั้นนำ</span>
           </h1>
-          <p className="text-lg text-blue-100 mb-0 font-light max-w-lg">
+          <p className="text-lg text-slate-300 mb-0 font-light max-w-lg">
             สั่งง่าย จ่ายสะดวก พร้อมเสิร์ฟถึงโต๊ะคุณ
           </p>
         </div>
@@ -104,8 +104,8 @@ export const ShopListPage = () => {
             onClick={() => setSelectedCategory(cat)}
             className={`px-6 py-3 rounded-full whitespace-nowrap transition-all font-bold text-sm border shadow-sm ${
               selectedCategory === cat 
-                ? 'bg-blue-900 text-white border-blue-900 shadow-lg shadow-blue-900/30 scale-105 ring-2 ring-blue-200' 
-                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-200 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 hover:text-blue-900'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
           >
             {cat}
@@ -115,7 +115,7 @@ export const ShopListPage = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-          <span className="bg-blue-100 p-2 rounded-xl"><TrendingUp className="w-6 h-6 text-blue-900" /></span> ร้านอาหารแนะนำ
+          <span className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-xl"><TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" /></span> ร้านอาหารแนะนำ
         </h2>
         
         {/* 👇 เช็คสิทธิ์ก่อนโชว์: ต้องเป็น ADMIN เท่านั้นถึงจะเห็นปุ่มนี้ */}
@@ -135,7 +135,7 @@ export const ShopListPage = () => {
             placeholder="Search restaurants..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-6 py-3.5 rounded-2xl border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-300 focus:shadow-xl transition-all placeholder:text-gray-400 dark:placeholder-slate-500 text-gray-800 dark:text-white font-medium"
+            className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all placeholder:text-slate-400 text-slate-900 dark:text-white font-medium"
           />
         </div>
       </div>

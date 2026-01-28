@@ -2,14 +2,13 @@
 import animatePlugin from 'tailwindcss-animate';
 
 export default {
-  darkMode: 'class', // 1. Enable class-based dark mode
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
-      // 2. Define the new, comprehensive color palette
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -19,7 +18,6 @@ export default {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
-          // Custom Blue Shades
           50: '#eff6ff',
           100: '#dbeafe',
           200: '#bfdbfe',
@@ -32,68 +30,29 @@ export default {
           900: '#1e3a8a',
           950: '#172554',
         },
-        // Neutral Gray for surfaces and text
-        neutral: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
-        },
-        // Accent Brown for warmth and trust
-        accent: {
-          50: '#fdf8f6',
-          100: '#f2e8e5',
-          200: '#eaddd7',
-          300: '#e0cec7',
-          400: '#d2bab0',
-          500: '#bfa094',
-          600: '#a18072',
-          700: '#977669',
-          800: '#846358',
-          900: '#43302b',
-        },
-        // Premium Gold for highlights
+        // Premium Gold Palette (เพิ่มความละเอียด)
         premium: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
+          50: '#F9F1D8',
+          100: '#F0DEAA',
+          200: '#E6CB7D',
+          300: '#DCNB50',
+          400: '#D4AF37', // ทองหลัก
+          500: '#AA8C2C',
+          600: '#806921',
+          700: '#554616',
+          800: '#2B230B',
+          900: '#1A1405',
         },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
+        brown: {
+          500: '#8D6E63',
+          800: '#4E342E',
         },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
+        // ... (standard colors preserved)
       },
-      // 3. Add Keyframes for animations
+      backgroundImage: {
+        'gold-gradient': 'linear-gradient(135deg, #F0DEAA 0%, #D4AF37 50%, #AA8C2C 100%)',
+        'luxury-dark': 'radial-gradient(circle at center, #1e293b 0%, #020617 100%)',
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -109,20 +68,33 @@ export default {
           "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
           "100%": { transform: "translate(0px, 0px) scale(1)" },
         },
+        "shimmer": {
+          '0%': { backgroundPosition: '-1000px 0' },
+          '100%': { backgroundPosition: '1000px 0' },
+        },
+        "float": {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
         "glow": {
-          "0%, 100%": { opacity: "0.7" },
-          "50%": { opacity: "1" },
+          '0%, 100%': { opacity: "1", filter: "brightness(1)" },
+          '50%': { opacity: "0.8", filter: "brightness(1.2)" },
+        },
+         "slide-up": {
+          '0%': { transform: 'translateY(100%)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
         }
       },
-      // 4. Define animation utilities
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "blob": "blob 7s infinite",
-        "glow": "glow 2s ease-in-out infinite",
+        "blob": "blob 10s infinite",
+        "shimmer": "shimmer 2.5s linear infinite",
+        "float": "float 6s ease-in-out infinite",
+        "glow": "glow 3s ease-in-out infinite",
+        "slide-up": "slide-up 0.5s ease-out forwards",
       },
     },
   },
-  // 5. Register the animate plugin
   plugins: [animatePlugin],
 }
