@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Save, Loader2, Camera, Shield, Mail, Lock, Trash2, AlertTriangle, Store, Phone, MapPin, Calendar, Info, KeyRound, Sparkles, CreditCard, CheckCircle2, X } from 'lucide-react';
+import { User, Save, Loader2, Camera, Shield, Lock, Trash2, AlertTriangle, Store, KeyRound, Sparkles, CreditCard, CheckCircle2, X, Crown, Wallet, TrendingUp } from 'lucide-react';
 import { useAuthStore } from './use-auth-store';
 import { api } from '../lib/axios';
 import { sha256 } from 'js-sha256';
@@ -33,7 +33,7 @@ export const SettingsPage = () => {
   // Read-only state
   const [createdAt, setCreatedAt] = useState('');
   const [updatedAt, setUpdatedAt] = useState('');
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false); // ✅ Modal สมัคร Plus
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   // Determine which user to fetch/edit
   const targetUserId = isAdmin && paramUserId ? paramUserId : loggedInUser?.id;
@@ -54,7 +54,6 @@ export const SettingsPage = () => {
           setCreatedAt(fullUserData.created_at || '');
           setUpdatedAt(fullUserData.updated_at || '');
 
-          // ✅ เพิ่ม: Sync ข้อมูลลง Store ถ้าเป็นตัวเอง (เพื่อให้ปุ่มสมัครหายไป)
           if (isEditingSelf && loggedInUser) {
              if (fullUserData.is_plus_member !== loggedInUser.is_plus_member) {
                  const updatedUser = { ...loggedInUser, is_plus_member: fullUserData.is_plus_member };
@@ -64,9 +63,8 @@ export const SettingsPage = () => {
         } catch (error) {
           console.error(`Failed to fetch user details for ID: ${targetUserId}`, error);
           alert('ไม่สามารถดึงข้อมูลผู้ใช้ได้ หรือผู้ใช้ไม่มีอยู่จริง');
-          // If admin fails to fetch a user, redirect them
           if (isAdmin && !isEditingSelf) {
-            navigate('/admin/shops'); // Or a user management page
+            navigate('/admin/shops');
           }
         } finally {
           setIsPageLoading(false);
@@ -76,7 +74,6 @@ export const SettingsPage = () => {
     }
   }, [targetUserId, navigate, isAdmin, isEditingSelf]);
 
-  // ฟังก์ชันย่อรูป (Reuse มาจากส่วนอื่น)
   const resizeImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -86,7 +83,7 @@ export const SettingsPage = () => {
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 300; // รูปโปรไฟล์เอาเล็กๆ ก็พอ
+          const MAX_WIDTH = 300;
           const scaleSize = MAX_WIDTH / img.width;
           canvas.width = MAX_WIDTH;
           canvas.height = img.height * scaleSize;
@@ -108,32 +105,31 @@ export const SettingsPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!targetUserId || !token) return;
+    
+    if (!targetUserId || !token) {
+      alert('ไม่พบข้อมูลผู้ใช้ หรือ Session หมดอายุ กรุณาล็อกอินใหม่');
+      return;
+    }
 
     setIsSaving(true);
     try {
-      // 1. อัปเดตข้อมูลที่ Server (ใช้ /customers ตาม login.ts)
-      // หมายเหตุ: Backend จริงอาจใช้ /users หรือ /profile แล้วแต่การออกแบบ
       const { data: responseData } = await api.patch(`/customers/${targetUserId}`, {
         username: username,
-        fullname: name, // map name -> fullname ตามโครงสร้าง db
+        fullname: name,
         lastname: lastname,
         phone_number: phoneNumber,
         gmail: gmail,
         address: address,
         image_url: avatar,
-        updated_at: new Date().toISOString(), // อัปเดตเวลาแก้ไข
+        updated_at: new Date().toISOString(),
       });
 
-      // 2. อัปเดตข้อมูลใน Store ฝั่ง Client ทันที (เฉพาะเมื่อแก้ไขข้อมูลตัวเอง)
       if (isEditingSelf && loggedInUser) {
         const updatedUser = { ...loggedInUser, username: responseData.username, name: responseData.fullname, avatar_url: responseData.image_url };
         login(updatedUser, token);
       }
 
-      // 3. อัปเดตข้อมูลที่แสดงผลในหน้าจอ โดยเฉพาะ updated_at
       setUpdatedAt(responseData.updated_at);
-
       alert('✅ บันทึกข้อมูลเรียบร้อย');
     } catch (error) {
       console.error(error);
@@ -159,13 +155,8 @@ export const SettingsPage = () => {
 
     setIsPasswordLoading(true);
     try {
-      // Admin doesn't need current password to reset for others.
-      // Only check current password if user is editing themselves.
       if (isEditingSelf) {
-        // 1. ดึงข้อมูล User ล่าสุดเพื่อเช็ครหัสเดิม
         const { data: currentUser } = await api.get(`/customers/${targetUserId}`);
-        
-        // 2. เช็ครหัสเดิม (Hash)
         const currentPasswordHash = sha256(currentPassword);
         
         if (currentUser.password !== currentPasswordHash) { 
@@ -175,7 +166,6 @@ export const SettingsPage = () => {
         }
       }
 
-      // 3. อัปเดตรหัสใหม่
       const newPasswordHash = sha256(newPassword);
       await api.patch(`/customers/${targetUserId}`, {
         password: newPasswordHash
@@ -209,7 +199,7 @@ export const SettingsPage = () => {
         alert('ลบบัญชีเรียบร้อยแล้ว');
       } else {
         alert(`ลบบัญชีผู้ใช้ ID: ${targetUserId} เรียบร้อยแล้ว`);
-        navigate(-1); // กลับไปหน้าก่อนหน้า (เช่น หน้าจัดการผู้ใช้)
+        navigate(-1);
       }
     } catch (error) {
       console.error(error);
@@ -223,13 +213,9 @@ export const SettingsPage = () => {
     const confirmed = window.confirm('ยืนยันการสมัคร User Plus ราคา 199 บาท/เดือน?');
     if (confirmed) {
         try {
-          // ✅ 1. ยิง API อัปเดตฐานข้อมูลจริง
           await api.patch(`/customers/${loggedInUser.id}`, { is_plus_member: true });
-
-          // ✅ 2. อัปเดต Store ฝั่ง Frontend
           const updatedUser = { ...loggedInUser, is_plus_member: true };
           login(updatedUser, token); 
-          
           alert('🎉 ยินดีต้อนรับสู่ User Plus! คุณได้รับสิทธิ์ผ่อนชำระและเปิดร้านค้าแล้ว');
           setShowSubscriptionModal(false);
         } catch (error) {
@@ -249,260 +235,318 @@ export const SettingsPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto pb-20 grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Profile Card & Main Form */}
-      <div className="lg:col-span-2 space-y-8">
-        <h1 className="text-3xl font-black text-gray-800 dark:text-white tracking-tight">
-          {isEditingSelf ? 'ตั้งค่าบัญชี' : `แก้ไขข้อมูลผู้ใช้: ${username}`}
-        </h1>
-        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-slate-700 overflow-hidden">
-        {/* Cover Background */}
-        <div className="h-40 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+    <div className="max-w-6xl mx-auto px-4 py-8 pb-32">
+      {/* Header */}
+      <div className="relative mb-10 p-8 rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 text-white shadow-2xl shadow-blue-900/20">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-overlay filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="relative z-10">
+            <h1 className="text-4xl font-black tracking-tight mb-3 drop-shadow-md">
+            {isEditingSelf ? 'ตั้งค่าบัญชีผู้ใช้' : `แก้ไขผู้ใช้: ${username}`}
+            </h1>
+            <p className="text-blue-100 text-lg max-w-2xl font-medium opacity-90">
+            จัดการข้อมูลส่วนตัว ความปลอดภัย และสถานะสมาชิกของคุณในที่เดียว
+            </p>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <div className="px-8 pb-8">
-          {/* Avatar Upload */}
-          <div className="relative -mt-20 mb-8 text-center">
-            <div className="relative inline-block group">
-              <img 
-                src={avatar || "https://placehold.co/150?text=User"} 
-                className="w-40 h-40 rounded-full border-[6px] border-white dark:border-slate-700 shadow-2xl object-cover bg-white"
-                alt="Profile"
-              />
-              <label className="absolute bottom-0 right-0 p-2 bg-gray-900 text-white rounded-full cursor-pointer hover:bg-gray-700 transition-colors shadow-sm">
-                <Camera className="w-5 h-5" />
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} disabled={!isEditingSelf} />
-              </label>
-            </div>
-            <div className="mt-2">
-              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${isAdmin ? 'bg-gray-800 text-white' : 'bg-amber-100 text-amber-700'}`}>
-                <Shield className="w-3 h-3" /> {isAdmin && !isEditingSelf ? 'USER' : loggedInUser?.role}
-              </span>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">ชื่อผู้ใช้ (Username)</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input 
-                  type="text" 
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-900 outline-none"
-                  placeholder="ชื่อผู้ใช้สำหรับเข้าสู่ระบบ"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">ชื่อจริง</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input 
-                    type="text" 
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-900 outline-none"
-                    placeholder="Full Name"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">นามสกุล</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input 
-                    type="text" 
-                    value={lastname}
-                    onChange={e => setLastname(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-900 outline-none"
-                    placeholder="Last Name"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">เบอร์โทรศัพท์</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input 
-                  type="tel" 
-                  value={phoneNumber}
-                  onChange={e => setPhoneNumber(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-900 outline-none"
-                  placeholder="Phone Number"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">ที่อยู่</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-4 w-5 h-5 text-gray-400" />
-                <textarea 
-                  value={address}
-                  rows={3}
-                  onChange={e => setAddress(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-900 outline-none resize-none"
-                  placeholder="Address"
-                />
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={isSaving}
-              className="w-full bg-gradient-to-r from-blue-900 to-indigo-900 text-white py-4 rounded-2xl font-bold hover:shadow-xl hover:shadow-blue-900/30 hover:scale-[1.01] transition-all flex justify-center items-center gap-2"
-            >
-              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5" /> บันทึกการเปลี่ยนแปลง</>}
-            </button>
-          </form>
-        </div>
-      </div>
-      </div>
-
-      {/* Side Column for Password, Info, and Danger Zone */}
-      <div className="lg:col-span-1 space-y-8">
-        {/* Password Change Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-amber-600" /> เปลี่ยนรหัสผ่าน
-          </h2>
+        {/* Left Sidebar (Profile & Status) */}
+        <div className="lg:col-span-4 space-y-6">
           
-          <form onSubmit={handlePasswordChange} className="space-y-4">
-            {isEditingSelf && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">รหัสผ่านปัจจุบัน</label>
-                <input 
-                  type="password" 
-                  required
-                  value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)}
-                  className="w-full p-3 border border-gray-200 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-900 outline-none"
-                  placeholder="••••••••"
+          {/* Profile Card */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl shadow-slate-200/50 dark:shadow-black/40 border border-slate-100 dark:border-slate-700 flex flex-col items-center text-center relative overflow-hidden">
+             <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-blue-600 to-indigo-700 opacity-10"></div>
+             
+             <div className="relative mt-4 mb-4 group">
+                <img 
+                  src={avatar || "https://placehold.co/150?text=User"} 
+                  className="w-32 h-32 rounded-full border-4 border-white dark:border-slate-700 shadow-lg object-cover bg-white"
+                  alt="Profile"
                 />
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{isEditingSelf ? 'รหัสผ่านใหม่' : 'ตั้งรหัสผ่านใหม่'}</label>
-                <input 
-                  type="password" 
-                  required
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  className="w-full p-3 border border-gray-200 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-900 outline-none"
-                  placeholder="••••••••"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">ยืนยันรหัสผ่าน</label>
-                <input 
-                  type="password" 
-                  required
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  className="w-full p-3 border border-gray-200 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-900 outline-none"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
+                <label className="absolute bottom-0 right-0 p-2 bg-slate-900 text-white rounded-full cursor-pointer hover:bg-blue-600 transition-colors shadow-lg border-2 border-white dark:border-slate-800">
+                  <Camera className="w-4 h-4" />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} disabled={!isEditingSelf} />
+                </label>
+             </div>
 
-            <button 
-              type="submit" 
-              disabled={isPasswordLoading}
-              className="w-full bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-50 transition-colors flex justify-center items-center gap-2"
-            >
-              {isPasswordLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'ยืนยันการเปลี่ยนรหัสผ่าน'}
-            </button>
-          </form>
-        </div>
+             <h2 className="text-xl font-bold text-slate-800 dark:text-white">{username || 'Unknown User'}</h2>
+             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{gmail || 'No Email'}</p>
 
-        {/* Account Info Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-            <Info className="w-5 h-5 text-blue-600" /> ข้อมูลบัญชี
-          </h2>
-          <div className="space-y-3 text-sm text-gray-600 dark:text-slate-300">
-            <div className="flex justify-between">
-              <span className="font-medium text-gray-500">Customer ID:</span>
-              <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700">{targetUserId}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-gray-500">Gmail:</span>
-              <span>{gmail || '-'}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-gray-500">สมัครเมื่อ:</span>
-              <span className="flex items-center gap-1"><Calendar className="w-4 h-4 text-gray-400"/> {createdAt ? new Date(createdAt).toLocaleDateString('th-TH') : '-'}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-gray-500">แก้ไขล่าสุด:</span>
-              <span className="flex items-center gap-1"><Calendar className="w-4 h-4 text-gray-400"/> {updatedAt ? new Date(updatedAt).toLocaleDateString('th-TH') : '-'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 🌟 User Plus / Merchant Section */}
-        {isEditingSelf && loggedInUser?.role !== 'ADMIN' && (
-          <div className={`rounded-3xl shadow-lg border p-6 relative overflow-hidden ${loggedInUser?.is_plus_member ? 'bg-gradient-to-br from-blue-900 to-indigo-900 text-white border-blue-800' : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-900 border-amber-200 dark:border-slate-700'}`}>
-            
-            {/* Decoration */}
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-
-            <div className="relative z-10">
-                <h2 className={`text-lg font-black mb-2 flex items-center gap-2 ${loggedInUser?.is_plus_member ? 'text-white' : 'text-amber-800 dark:text-amber-400'}`}>
-                  {loggedInUser?.is_plus_member ? <><Sparkles className="w-5 h-5 text-yellow-400" /> User Plus Member</> : <><Store className="w-5 h-5" /> สำหรับผู้ประกอบการ</>}
-                </h2>
-                
-                <p className={`text-sm mb-4 ${loggedInUser?.is_plus_member ? 'text-blue-100' : 'text-gray-600 dark:text-slate-300'}`}>
-                  {loggedInUser?.is_plus_member 
-                    ? 'คุณได้รับสิทธิ์พิเศษ: ผ่อนชำระสินค้า และเปิดร้านค้าได้ 1 ร้าน (สูงสุด 10 เมนู)' 
-                    : 'ต้องการเปิดร้านค้าและใช้ระบบผ่อนชำระ? อัปเกรดเป็น User Plus วันนี้'}
-                </p>
-
-                {loggedInUser?.is_plus_member ? (
-                    <button 
-                      onClick={() => navigate('/my-shop')} // ✅ ให้ MyShopRedirect ตัดสินใจเอง
-                      className="w-full py-2.5 bg-white text-blue-900 rounded-xl text-sm font-bold hover:bg-blue-50 transition-colors shadow-sm flex items-center justify-center gap-2"
-                    >
-                      <Store className="w-4 h-4" /> จัดการร้านค้าของคุณ
-                    </button>
-                ) : (
-                    <button 
-                      onClick={() => setShowSubscriptionModal(true)}
-                      className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:scale-[1.02] transition-all shadow-md flex items-center justify-center gap-2"
-                    >
-                      <Sparkles className="w-4 h-4" /> สมัคร User Plus (199฿/ด.)
-                    </button>
+             <div className="flex flex-wrap gap-2 justify-center mb-6">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${isAdmin ? 'bg-slate-800 text-white border-slate-700' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
+                  <Shield className="w-3 h-3" /> {isAdmin ? 'ADMIN' : 'USER'}
+                </span>
+                {loggedInUser?.is_plus_member && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border border-amber-200">
+                    <Sparkles className="w-3 h-3" /> PLUS MEMBER
+                  </span>
                 )}
-            </div>
-          </div>
-        )}
+             </div>
 
-        {/* Delete Account Section */}
-        <div className="bg-red-50/50 dark:bg-red-900/10 rounded-3xl shadow-lg border border-red-100 dark:border-red-900/30 p-6">
-          <h2 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" /> โซนอันตราย
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-red-200/70 mb-4">หากลบบัญชี ข้อมูลทั้งหมดจะถูกลบและไม่สามารถกู้คืนได้</p>
+             <div className="w-full pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between text-xs text-slate-400">
+                <span>สมัครเมื่อ: {createdAt ? new Date(createdAt).toLocaleDateString('th-TH') : '-'}</span>
+                <span>อัปเดต: {updatedAt ? new Date(updatedAt).toLocaleDateString('th-TH') : '-'}</span>
+             </div>
+          </div>
+
+          {/* User Plus / Shop Status */}
+          {isEditingSelf && (
+            <div className={`rounded-3xl p-1 shadow-xl relative overflow-hidden transition-all hover:scale-[1.02] ${loggedInUser?.is_plus_member ? 'bg-gradient-to-br from-amber-300 via-yellow-400 to-orange-500' : 'bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800'}`}>
+              <div className={`h-full rounded-[1.3rem] p-6 relative overflow-hidden ${loggedInUser?.is_plus_member ? 'bg-slate-900 text-white' : 'bg-white dark:bg-slate-800'}`}>
+                
+                {/* Header of Card */}
+                <div className="flex items-center gap-3 mb-4">
+                   <div className={`p-2.5 rounded-xl shadow-inner ${loggedInUser?.is_plus_member ? 'bg-gradient-to-br from-amber-400 to-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300'}`}>
+                      {loggedInUser?.is_plus_member ? <Crown className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
+                   </div>
+                   <div>
+                      <h3 className={`font-black text-lg leading-tight ${loggedInUser?.is_plus_member ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-400' : 'text-slate-800 dark:text-white'}`}>
+                        {loggedInUser?.is_plus_member ? 'PLUS MEMBER' : 'อัปเกรดเป็น PLUS'}
+                      </h3>
+                      <p className={`text-xs font-medium ${loggedInUser?.is_plus_member ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {loggedInUser?.is_plus_member ? 'สถานะสมาชิก: ปกติ (Active)' : 'ปลดล็อกขีดจำกัดของคุณ'}
+                      </p>
+                   </div>
+                </div>
+
+                {/* Benefits List */}
+                <div className="space-y-3 mb-6">
+                    <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 p-1 rounded-full ${loggedInUser?.is_plus_member ? 'bg-green-500/20 text-green-400' : 'bg-blue-50 text-blue-600'}`}><Wallet className="w-3 h-3" /></div>
+                        <div className="text-sm">
+                            <p className={`font-bold ${loggedInUser?.is_plus_member ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>ระบบผ่อนชำระ (Pay Later)</p>
+                            <p className={`text-xs ${loggedInUser?.is_plus_member ? 'text-slate-400' : 'text-slate-500'}`}>ช้อปก่อนจ่ายทีหลัง วงเงินสูงสุด 5,000฿</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 p-1 rounded-full ${loggedInUser?.is_plus_member ? 'bg-green-500/20 text-green-400' : 'bg-blue-50 text-blue-600'}`}><Store className="w-3 h-3" /></div>
+                        <div className="text-sm">
+                            <p className={`font-bold ${loggedInUser?.is_plus_member ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>เปิดร้านค้า (Merchant)</p>
+                            <p className={`text-xs ${loggedInUser?.is_plus_member ? 'text-slate-400' : 'text-slate-500'}`}>สร้างร้านอาหารและรับออเดอร์ได้ทันที</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 p-1 rounded-full ${loggedInUser?.is_plus_member ? 'bg-green-500/20 text-green-400' : 'bg-blue-50 text-blue-600'}`}><TrendingUp className="w-3 h-3" /></div>
+                        <div className="text-sm">
+                            <p className={`font-bold ${loggedInUser?.is_plus_member ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>แดชบอร์ดร้านค้า</p>
+                            <p className={`text-xs ${loggedInUser?.is_plus_member ? 'text-slate-400' : 'text-slate-500'}`}>ดูยอดขายและสถิติแบบ Real-time</p>
+                        </div>
+                    </div>
+                </div>
+
+                  {loggedInUser?.is_plus_member ? (
+                      <button 
+                        onClick={() => navigate('/my-shop')}
+                        className="w-full py-3 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-amber-500/20 transition-all shadow-md flex items-center justify-center gap-2"
+                      >
+                        <Store className="w-4 h-4" /> จัดการร้านค้า
+                      </button>
+                  ) : (
+                      <button 
+                        onClick={() => setShowSubscriptionModal(true)}
+                        className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:scale-[1.02] transition-all shadow-md flex items-center justify-center gap-2"
+                      >
+                        <Sparkles className="w-4 h-4" /> สมัครสมาชิก (199฿ / เดือน)
+                      </button>
+                  )}
+              </div>
+            </div>
+          )}
+
+          {/* Danger Zone */}
+          <div className="bg-red-50 dark:bg-red-900/10 rounded-3xl p-6 border border-red-100 dark:border-red-900/30">
+             <h3 className="text-red-800 dark:text-red-400 font-bold flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4" /> Danger Zone
+             </h3>
+             <p className="text-xs text-red-600/70 dark:text-red-400/70 mb-4">
+                การลบบัญชีจะไม่สามารถกู้คืนข้อมูลได้
+             </p>
+             <button 
+                onClick={handleDeleteAccount}
+                className="w-full py-2 bg-white dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> ลบบัญชีผู้ใช้
+              </button>
+          </div>
+
+        </div>
+
+        {/* Right Content (Forms) */}
+        <div className="lg:col-span-8 space-y-8">
           
-          <button 
-            onClick={handleDeleteAccount}
-            className="w-full px-4 py-2 bg-white dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 rounded-lg text-sm font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center justify-center gap-2"
-          >
-            <Trash2 className="w-4 h-4" /> ลบบัญชีผู้ใช้ถาวร
-          </button>
+          {/* 1. General Information Form */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-lg shadow-slate-200/50 dark:shadow-black/20 border border-slate-100 dark:border-slate-700">
+             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-700">
+                <div className="p-2 bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-lg">
+                   <User className="w-5 h-5" />
+                </div>
+                <div>
+                   <h3 className="text-lg font-bold text-slate-800 dark:text-white">ข้อมูลส่วนตัว</h3>
+                   <p className="text-xs text-slate-500">แก้ไขข้อมูลพื้นฐานของคุณ</p>
+                </div>
+             </div>
+
+             <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700 dark:text-slate-300">ชื่อผู้ใช้ (Username)</label>
+                      <input 
+                        type="text" 
+                        value={username}
+                        onChange={e => setUsername(e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white"
+                        placeholder="Username"
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700 dark:text-slate-300">อีเมล (Gmail)</label>
+                      <input 
+                        type="email" 
+                        value={gmail}
+                        onChange={e => setGmail(e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white"
+                        placeholder="example@gmail.com"
+                      />
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700 dark:text-slate-300">ชื่อจริง</label>
+                      <input 
+                        type="text" 
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white"
+                        placeholder="First Name"
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700 dark:text-slate-300">นามสกุล</label>
+                      <input 
+                        type="text" 
+                        value={lastname}
+                        onChange={e => setLastname(e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white"
+                        placeholder="Last Name"
+                      />
+                   </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">เบอร์โทรศัพท์</label>
+                    <input 
+                      type="tel" 
+                      value={phoneNumber}
+                      onChange={e => setPhoneNumber(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white"
+                      placeholder="08X-XXX-XXXX"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">ที่อยู่จัดส่ง</label>
+                    <textarea 
+                      value={address}
+                      rows={3}
+                      onChange={e => setAddress(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none font-medium text-slate-800 dark:text-white"
+                      placeholder="บ้านเลขที่, ถนน, แขวง/ตำบล, เขต/อำเภอ, จังหวัด..."
+                    />
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                    <button 
+                      type="submit" 
+                      disabled={isSaving}
+                      className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                      บันทึกการเปลี่ยนแปลง
+                    </button>
+                </div>
+             </form>
+          </div>
+
+          {/* 2. Security Form */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-lg shadow-slate-200/50 dark:shadow-black/20 border border-slate-100 dark:border-slate-700">
+             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-700">
+                <div className="p-2 bg-amber-50 dark:bg-slate-700 text-amber-600 dark:text-amber-400 rounded-lg">
+                   <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                   <h3 className="text-lg font-bold text-slate-800 dark:text-white">รหัสผ่านและความปลอดภัย</h3>
+                   <p className="text-xs text-slate-500">เปลี่ยนรหัสผ่านเพื่อความปลอดภัย</p>
+                </div>
+             </div>
+
+             <form onSubmit={handlePasswordChange} className="space-y-6">
+                {isEditingSelf && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">รหัสผ่านปัจจุบัน</label>
+                    <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input 
+                          type="password" 
+                          required
+                          value={currentPassword}
+                          onChange={e => setCurrentPassword(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all font-medium text-slate-800 dark:text-white"
+                          placeholder="••••••••"
+                        />
+                    </div>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{isEditingSelf ? 'รหัสผ่านใหม่' : 'ตั้งรหัสผ่านใหม่'}</label>
+                    <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input 
+                          type="password" 
+                          required
+                          value={newPassword}
+                          onChange={e => setNewPassword(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all font-medium text-slate-800 dark:text-white"
+                          placeholder="••••••••"
+                        />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">ยืนยันรหัสผ่าน</label>
+                    <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input 
+                          type="password" 
+                          required
+                          value={confirmPassword}
+                          onChange={e => setConfirmPassword(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all font-medium text-slate-800 dark:text-white"
+                          placeholder="••••••••"
+                        />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                    <button 
+                      type="submit" 
+                      disabled={isPasswordLoading}
+                      className="px-6 py-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold transition-all flex items-center gap-2"
+                    >
+                      {isPasswordLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'เปลี่ยนรหัสผ่าน'}
+                    </button>
+                </div>
+             </form>
+          </div>
+
         </div>
       </div>
 
-      {/* 💎 Subscription Modal */}
+      {/* Subscription Modal */}
       {showSubscriptionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl relative">
@@ -510,24 +554,32 @@ export const SettingsPage = () => {
                     <X className="w-5 h-5 text-gray-500" />
                 </button>
 
-                <div className="bg-blue-900 p-8 text-center relative overflow-hidden">
+                <div className="bg-gradient-to-br from-blue-900 to-indigo-900 p-8 text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                    <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 text-yellow-400 shadow-inner border border-white/20">
-                        <Sparkles className="w-8 h-8" />
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500 rounded-full blur-3xl opacity-30"></div>
+                    
+                    <div className="w-20 h-20 bg-gradient-to-br from-amber-300 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-lg shadow-amber-500/30 rotate-3">
+                        <Crown className="w-10 h-10" />
                     </div>
-                    <h3 className="text-2xl font-black text-white tracking-tight">User Plus</h3>
-                    <p className="text-blue-200 text-sm">ปลดล็อกขีดจำกัดของคุณ</p>
+                    <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-md">User Plus</h3>
+                    <p className="text-blue-200 text-sm font-medium mt-1">ปลดล็อกขีดจำกัดของคุณ เพียง 199฿</p>
                 </div>
 
                 <div className="p-8">
-                    <div className="space-y-4 mb-8">
-                        <div className="flex items-center gap-3 text-gray-700">
-                            <div className="p-2 bg-green-100 rounded-full text-green-600"><CreditCard className="w-4 h-4" /></div>
-                            <span className="text-sm font-medium">ระบบผ่อนชำระ (Pay Later)</span>
+                    <div className="space-y-5 mb-8">
+                        <div className="flex items-start gap-4 text-gray-700">
+                            <div className="p-3 bg-green-100 rounded-xl text-green-600 shrink-0"><Wallet className="w-6 h-6" /></div>
+                            <div>
+                                <span className="block text-base font-bold text-gray-800">ระบบผ่อนชำระ (Pay Later)</span>
+                                <span className="text-xs text-gray-500">รับวงเงินเครดิตสูงสุด 5,000 บาท สั่งอาหารก่อน จ่ายทีหลังได้</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-3 text-gray-700">
-                            <div className="p-2 bg-blue-100 rounded-full text-blue-600"><Store className="w-4 h-4" /></div>
-                            <span className="text-sm font-medium">สร้างร้านอาหารได้ 1 ร้าน</span>
+                        <div className="flex items-start gap-4 text-gray-700">
+                            <div className="p-3 bg-blue-100 rounded-xl text-blue-600 shrink-0"><Store className="w-6 h-6" /></div>
+                            <div>
+                                <span className="block text-base font-bold text-gray-800">เปิดร้านอาหารของคุณเอง</span>
+                                <span className="text-xs text-gray-500">สร้างร้านค้า จัดการเมนู และรับออเดอร์จากลูกค้าได้ทันที</span>
+                            </div>
                         </div>
                         <div className="flex items-center gap-3 text-gray-700">
                             <div className="p-2 bg-purple-100 rounded-full text-purple-600"><CheckCircle2 className="w-4 h-4" /></div>

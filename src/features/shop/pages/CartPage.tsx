@@ -1,43 +1,58 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, ArrowLeft, Banknote, QrCode, CreditCard, Upload, ShieldCheck, Lock, X } from 'lucide-react';
+import { 
+  Trash2, Plus, Minus, ArrowRight, ShoppingBag, ArrowLeft, 
+  Banknote, QrCode, CreditCard, Upload, ShieldCheck, Lock, X, 
+  AlertCircle, Copy, Loader2, CheckCircle2, Wallet, Sparkles, 
+  ChevronRight, Info, Printer, Heart, Gift, RefreshCw, ShoppingCart
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '../../../stores/useCartStore';
 import { createOrder, generatePromptPayQR } from '../api/shopService';
 import { useAuthStore } from '../../../stores/use-auth-store';
-import { useToastStore } from '../../../stores/useToastStore'; // ✅ เรียกใช้ Store ใหม่
+import { useToastStore } from '../../../stores/useToastStore';
 
 export const CartPage = () => {
   const navigate = useNavigate();
-  const { user, login, token, refreshToken } = useAuthStore(); // 👈 ดึง user และฟังก์ชัน login มาใช้เพื่ออัปเดตสถานะ
+  const { user, login, token, refreshToken } = useAuthStore();
+  const { items: rawItems, removeItem, updateQuantity, clearCart, addItem } = useCartStore();
+  const { addToast } = useToastStore();
   
-  // ดึง State จาก Store
-  // หมายเหตุ: ต้องตรวจสอบว่าใน useCartStore มี function updateQuantity และ removeItem แล้วหรือยัง
-  // ✅ แก้ไข: เช็คว่าเป็น Array จริงๆ ก่อนใช้ เพื่อกันจอขาวถ้าข้อมูลใน LocalStorage พัง
-  const rawItems = useCartStore((state) => state.items);
-  // 🛡️ กรองข้อมูลขยะทิ้ง: เอาเฉพาะ item ที่มีอยู่จริงและมี menu_id เท่านั้น
-  const items = Array.isArray(rawItems) 
-    ? rawItems.filter(item => item && typeof item === 'object' && item.menu_id) 
-    : [];
+  // ✅ Local state for "Saved for later" items
+  const [savedItems, setSavedItems] = useState<any[]>([]);
 
-  const removeItem = useCartStore((state) => state.removeItem);
-  const updateQuantity = useCartStore((state) => state.updateQuantity); 
-  const clearCart = useCartStore((state) => state.clearCart);
-  const { addToast } = useToastStore(); // ✅ ดึงฟังก์ชันแจ้งเตือนมาใช้
+  const items = Array.isArray(rawItems)
+    ? rawItems.filter(item => item && typeof item === 'object' && item.menu_id) : [];
 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  
-  // 💳 Payment State
+  const [isVerifying, setIsVerifying] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'promptpay' | 'credit'>('promptpay');
   const [slipImage, setSlipImage] = useState<string>('');
-  const [showBindCard, setShowBindCard] = useState(false); // Modal ผูกบัตร
+  const [showBindCard, setShowBindCard] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [lastOrderData, setLastOrderData] = useState<any>(null);
   const [cardForm, setCardForm] = useState({ number: '', expiry: '', cvv: '', name: '' });
-  const PROMPTPAY_ID = "173-1-41607-5"; // เลขบัญชีรับเงิน
+  const PROMPTPAY_ID = "173-1-41607-5";
+  const [orderRef] = useState(`REF-${Math.floor(100000 + Math.random() * 900000)}`); 
+  const [isRefIdConfirmed, setIsRefIdConfirmed] = useState(false);
 
-
-  // คำนวณราคารวม
   const totalPrice = items.reduce((sum, item) => sum + (Number(item.price || 0) * (item.quantity || 0)), 0);
 
-  // ฟังก์ชันย่อรูปสลิป (Reuse)
+  // --- Actions ---
+  const handleSaveForLater = (item: any) => {
+    setSavedItems((prev) => [...prev, item]);
+    removeItem(item.menu_id);
+    addToast('ย้ายไปรายการที่บันทึกไว้แล้ว', 'success');
+  };
+
+  const handleMoveToCart = (item: any) => {
+    addItem(item);
+    setSavedItems((prev) => prev.filter((i) => i.menu_id !== item.menu_id));
+    addToast('ย้ายกลับเข้าตะกร้าแล้ว', 'success');
+  };
+
+  // --- Helpers ---
   const resizeImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -47,13 +62,13 @@ export const CartPage = () => {
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 500; 
+          const MAX_WIDTH = 800; 
           const scaleSize = MAX_WIDTH / img.width;
           canvas.width = MAX_WIDTH;
           canvas.height = img.height * scaleSize;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', 0.6));
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
         };
       };
     });
@@ -64,42 +79,71 @@ export const CartPage = () => {
     if (file) {
       const resized = await resizeImage(file);
       setSlipImage(resized);
+      setIsRefIdConfirmed(false);
+    }
+  };
+
+  const verifySlip = (base64: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+        // Mock verification for UX demo
+        setTimeout(() => {
+            addToast('✅ รูปแบบสลิปถูกต้อง (รอร้านค้าตรวจสอบยอดเงิน)', 'success');
+            resolve(true);
+        }, 1500);
+    });
+  };
+
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return value;
     }
   };
 
   const handleBindCardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // จำลองการตรวจสอบบัตรเครดิตและอัปเกรด User
-    if (cardForm.number.length < 16 || cardForm.cvv.length < 3) {
-        addToast('ข้อมูลบัตรไม่ถูกต้อง', 'error');
-        return;
-    }
-
     if (user && token) {
-        // อัปเดต User Store ให้เป็น Plus Member
-        const updatedUser = { ...user, is_plus_member: true, credit_card_last4: cardForm.number.slice(-4) };
+        const updatedUser = { ...user, is_plus_member: true, credit_card_last4: cardForm.number.slice(-4) || '8888' };
         login(updatedUser, token, refreshToken || undefined);
         addToast('🎉 ผูกบัตรสำเร็จ! คุณเป็น User Plus แล้ว', 'success');
         setShowBindCard(false);
     }
   };
 
-  const handleCheckout = async () => {
+  const handleCheckoutClick = () => {
     if (items.length === 0) return;
-
     if (!user) {
-      addToast('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ', 'error'); // 🔔 แจ้งเตือนสวยๆ
+      addToast('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ', 'error');
       navigate('/login');
       return;
     }
+    setShowPaymentModal(true);
+  };
 
-    // เช็คสลิปถ้าเลือกโอนจ่าย
-    if (paymentMethod === 'promptpay' && !slipImage) {
-      addToast('กรุณาแนบสลิปโอนเงินก่อนสั่งซื้อ', 'warning');
-      return;
+  const handleConfirmOrder = async () => {
+    if (paymentMethod === 'promptpay') {
+        if (!slipImage) {
+            addToast('กรุณาแนบสลิปโอนเงิน', 'warning');
+            return;
+        }
+        if (!isRefIdConfirmed) {
+            addToast('กรุณายืนยันว่าระบุ Ref ID ในสลิปแล้ว', 'warning');
+            return;
+        }
+        setIsVerifying(true);
+        const isValid = await verifySlip(slipImage);
+        setIsVerifying(false);
+        if (!isValid) return;
     }
 
-    // เช็คสิทธิ์ผ่อนชำระ
     if (paymentMethod === 'credit' && !user?.is_plus_member) {
         addToast('กรุณาผูกบัตรเครดิตเพื่อเปิดใช้งาน User Plus ก่อน', 'warning');
         return;
@@ -107,338 +151,526 @@ export const CartPage = () => {
 
     setIsCheckingOut(true);
     try {
-      // กำหนดสถานะออเดอร์ตามวิธีชำระเงิน
-      let status = 'paid'; 
-      if (paymentMethod === 'cash') status = 'pending_payment';
+      let status = 'pending_payment'; 
       if (paymentMethod === 'credit') status = 'credit_pending';
 
-      // เนื่องจาก API createOrder รับทีละรายการ เราจึงต้องวนลูปยิง
-      // (ในระบบจริงควรมี API ที่รับเป็น Array ได้เลยเพื่อลด Request)
-      const orderPromises = items.map((item) => 
+      const orderSnapshot = {
+        items: [...items],
+        total: totalPrice,
+        date: new Date(),
+        ref: orderRef,
+        paymentMethod
+      };
+
+      const orderPromises = items.map((item) =>
         createOrder({
-          customer_id: Number(user.id) || 0, // 🛡️ กันไว้เผื่อแปลงไม่ได้
+          customer_id: Number(user.id) || 0,
           restaurant_id: item.restaurant_id,
           menu_id: item.menu_id,
           quantity: item.quantity,
-          total_price: Number(item.price || 0) * item.quantity, // 🛡️ กันราคาเป็น null/undefined
+          total_price: Number(item.price || 0) * item.quantity,
           order_status: status,
           order_date: new Date().toISOString(),
-          payment_method: paymentMethod, // ✅ ส่งวิธีชำระเงินไปด้วย
-          slip_url: paymentMethod === 'promptpay' ? slipImage : null // ✅ ส่งสลิปไปด้วย
+          payment_method: paymentMethod,
+          slip_url: paymentMethod === 'promptpay' ? slipImage : null
         })
       );
 
       await Promise.all(orderPromises);
-
-      // สั่งเสร็จแล้วเคลียร์ตะกร้า
       clearCart();
+      setLastOrderData(orderSnapshot);
+      setShowPaymentModal(false);
+      setShowReceiptModal(true);
       
-      // แจ้งเตือนและย้ายหน้า
-      addToast('สั่งอาหารเรียบร้อยแล้ว! 🍜', 'success'); // 🔔 แจ้งเตือนสำเร็จ
-      navigate('/orders'); // ✅ แก้ไข: ต้องไปที่ /orders ตามที่ตั้งไว้ใน AppRoutes
     } catch (error) {
       console.error("Checkout failed:", error);
-      addToast('เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่', 'error'); // 🔔 แจ้งเตือน Error
+      addToast('เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่', 'error');
     } finally {
       setIsCheckingOut(false);
     }
   };
 
-  if (items.length === 0) {
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    addToast(`คัดลอก ${text} แล้ว`, 'success');
+  };
+
+  // --- Empty State ---
+  if (items.length === 0 && savedItems.length === 0) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
-        <div className="bg-gray-100 p-6 rounded-full">
-            <ShoppingBag className="w-12 h-12 text-gray-400" />
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700">
+        <div className="relative mb-8 group">
+            <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-3xl group-hover:blur-xl transition-all duration-500"></div>
+            <div className="w-32 h-32 bg-gradient-to-br from-slate-100 to-white dark:from-slate-800 dark:to-slate-900 rounded-full flex items-center justify-center shadow-2xl border border-white/50 dark:border-slate-700 relative z-10">
+                <ShoppingBag className="w-14 h-14 text-slate-400 dark:text-slate-500 group-hover:scale-110 transition-transform duration-300" />
+            </div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">ตะกร้าของคุณว่างเปล่า</h2>
-        <p className="text-gray-500">หิวไหม? ไปเลือกร้านอาหารกันเถอะ</p>
-        <button 
+        <h2 className="text-4xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">Your Cart is Empty</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-lg mb-8 max-w-md mx-auto">
+            Looks like you haven't added anything yet. Discover our premium menu and start your journey.
+        </p>
+        <button
           onClick={() => navigate('/shops')}
-          className="mt-4 px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"
+          className="group relative px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold text-lg overflow-hidden shadow-xl shadow-slate-900/20 hover:shadow-2xl hover:shadow-blue-900/20 transition-all hover:-translate-y-1"
         >
-          เลือกร้านอาหาร
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <span className="relative flex items-center gap-3">
+             Start Shopping <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </span>
         </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto pb-80 md:pb-32 px-4 md:px-0">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8 pt-6">
-        <button onClick={() => navigate(-1)} className="p-3 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-full shadow-sm transition-all">
-            <ArrowLeft className="w-6 h-6 text-gray-600" />
-        </button>
-        <h1 className="text-3xl font-black text-gray-800 dark:text-white tracking-tight">My Cart</h1>
+    <div className="min-h-screen pb-40 relative bg-slate-50/50 dark:bg-slate-950">
+      {/* Background Elements */}
+      <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
+         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px]"></div>
+         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-amber-500/5 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* รายการสินค้า */}
-        <div className="lg:col-span-2 space-y-4">
-          {items.map((item) => (
-            <div key={item.menu_id} className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 flex gap-6 items-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-              <img 
-                src={item.image_url || "https://placehold.co/100"} 
-                alt={item.menu_name || "Menu"}
-                className="w-28 h-28 rounded-2xl object-cover bg-gray-50 shadow-md group-hover:scale-105 transition-transform duration-500"
-              />
-              
-              <div className="flex-1 flex flex-col justify-between">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8">
+        
+        {/* Header: Progress Steps */}
+        <div className="mb-8 md:mb-12">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-400 mb-4 overflow-x-auto">
+                <span className="text-blue-600 dark:text-blue-400">Cart</span>
+                <ChevronRight className="w-4 h-4" />
+                <span>Payment</span>
+                <ChevronRight className="w-4 h-4" />
+                <span>Confirmation</span>
+            </div>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                  <h3 className="font-bold text-gray-800 dark:text-white text-xl line-clamp-1 mb-1">{item.menu_name || "Unknown Menu"}</h3>
-                  <p className="text-amber-600 font-black text-lg">{Number(item.price || 0).toLocaleString()} <span className="text-xs font-normal text-gray-400">THB</span></p>
+                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                        Shopping <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Cart</span>
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-green-500" /> 
+                        Secure Checkout • {items.length} Items
+                    </p>
                 </div>
-                
-                <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-700 rounded-xl p-1">
-                    <button 
-                      onClick={() => updateQuantity(item.menu_id, Math.max(1, item.quantity - 1))}
-                      className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-600 rounded-lg shadow-sm text-gray-600 dark:text-white hover:text-blue-900 active:scale-90 transition-all"
-                      disabled={item.quantity <= 1}
-                    >
-                      <Minus className="w-4 h-4 text-gray-600" />
-                    </button>
-                    <span className="font-bold w-6 text-center text-gray-800 dark:text-white">{item.quantity}</span>
-                    <button 
-                      onClick={() => updateQuantity(item.menu_id, item.quantity + 1)}
-                      className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-600 rounded-lg shadow-sm text-gray-600 dark:text-white hover:text-blue-900 active:scale-90 transition-all"
-                    >
-                      <Plus className="w-4 h-4 text-gray-600" />
-                    </button>
-                  </div>
-
-                  <button 
-                    onClick={() => removeItem(item.menu_id)}
-                    className="w-10 h-10 flex items-center justify-center bg-red-50 dark:bg-red-900/20 text-red-400 rounded-xl hover:bg-red-100 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
             </div>
-          ))}
-
-          {/* 💳 ส่วนเลือกวิธีการชำระเงิน (เพิ่มใหม่) */}
-          <div className="bg-white dark:bg-slate-800 p-8 rounded-[2rem] shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-slate-700 mt-8">
-            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-              <CreditCard className="w-6 h-6 text-blue-900" /> วิธีการชำระเงิน
-            </h3>
-            
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              <button 
-                onClick={() => setPaymentMethod('cash')}
-                className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'cash' ? 'border-blue-600 bg-blue-50 text-blue-900 ring-4 ring-blue-100 shadow-lg' : 'border-gray-100 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 hover:shadow-md'}`}
-              >
-                <Banknote className="w-6 h-6" />
-                <span className="text-xs font-bold">เงินสด</span>
-              </button>
-              <button 
-                onClick={() => setPaymentMethod('promptpay')}
-                className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'promptpay' ? 'border-blue-600 bg-blue-50 text-blue-900 ring-4 ring-blue-100 shadow-lg' : 'border-gray-100 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 hover:shadow-md'}`}
-              >
-                <QrCode className="w-6 h-6" />
-                <span className="text-xs font-bold">สแกนจ่าย</span>
-              </button>
-              <button 
-                onClick={() => setPaymentMethod('credit')}
-                className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'credit' ? 'border-blue-600 bg-blue-50 text-blue-900 ring-4 ring-blue-100 shadow-lg' : 'border-gray-100 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 hover:shadow-md'}`}
-              >
-                <CreditCard className="w-6 h-6" />
-                <span className="text-xs font-bold">ผ่อนชำระ</span>
-              </button>
-            </div>
-
-            {/* 📱 แสดง QR Code เมื่อเลือก PromptPay */}
-            {paymentMethod === 'promptpay' && (
-              <div className="bg-gray-50 dark:bg-slate-700/30 rounded-2xl p-6 border border-gray-100 dark:border-slate-600 animate-in fade-in slide-in-from-top-4 duration-300">
-                <div className="flex flex-col md:flex-row items-center gap-8">
-                  <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center">
-                    <img 
-                        src={generatePromptPayQR(PROMPTPAY_ID, totalPrice)} 
-                        alt="QR Code" 
-                        className="w-40 h-40 mix-blend-multiply mx-auto"
-                    />
-                    <p className="text-xs font-bold text-blue-900 mt-2">สแกนจ่าย ฿{totalPrice.toLocaleString()}</p>
-                  </div>
-                  
-                  <div className="flex-1 w-full">
-                    <label className="block font-bold text-gray-700 dark:text-slate-200 text-sm mb-2">แนบหลักฐานการโอน (Slip)</label>
-                    <div className="relative">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleFileChange}
-                        className="hidden" 
-                        id="cart-slip-upload"
-                      />
-                      <label 
-                        htmlFor="cart-slip-upload"
-                        className="block w-full p-4 border-2 border-dashed border-gray-300 dark:border-slate-500 rounded-xl text-center cursor-pointer hover:bg-white dark:hover:bg-slate-600 hover:border-blue-400 transition-all group bg-white dark:bg-slate-700"
-                      >
-                        {slipImage ? (
-                          <div className="relative">
-                              <img src={slipImage} className="h-32 mx-auto rounded-lg shadow-sm object-contain" />
-                              <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-medium text-sm">เปลี่ยนรูป</div>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center text-gray-400 dark:text-slate-400 py-4">
-                            <Upload className="w-8 h-8 mb-2 text-gray-300 group-hover:text-blue-500 transition-colors" />
-                            <span className="text-sm">คลิกเพื่ออัปโหลดสลิป</span>
-                          </div>
-                        )}
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 💵 ข้อความสำหรับเงินสด */}
-            {paymentMethod === 'cash' && (
-               <div className="bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 p-4 rounded-xl border border-green-100 dark:border-green-900/50 flex items-center gap-3 animate-in fade-in">
-                  <Banknote className="w-5 h-5" />
-                  <p className="text-sm font-medium">กรุณาชำระเงินที่เคาน์เตอร์หลังจากกดสั่งซื้อ</p>
-               </div>
-            )}
-
-            {/* 💳 ข้อความสำหรับผ่อนชำระ */}
-            {paymentMethod === 'credit' && (
-               <div className="space-y-4 animate-in fade-in">
-                  {!user?.is_plus_member ? (
-                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-6 rounded-2xl text-center space-y-3">
-                          <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto text-amber-600">
-                              <Lock className="w-6 h-6" />
-                          </div>
-                          <h4 className="font-bold text-amber-900 dark:text-amber-100">สิทธิพิเศษสำหรับ User Plus</h4>
-                          <p className="text-sm text-amber-700 dark:text-amber-200">ผูกบัตรเครดิตเพื่อเปิดใช้งานระบบ "กินก่อน จ่ายทีหลัง" และรับสิทธิประโยชน์มากมาย</p>
-                          <button 
-                            onClick={() => setShowBindCard(true)}
-                            className="px-6 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-colors shadow-sm"
-                          >
-                            สมัคร User Plus / ผูกบัตร
-                          </button>
-                      </div>
-                  ) : (
-                      <div className="bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200 p-4 rounded-xl border border-purple-100 dark:border-purple-900/50">
-                          <div className="flex items-center gap-3 mb-2">
-                             <CreditCard className="w-5 h-5" />
-                             <p className="font-bold">ชำระด้วยบัตร •••• {user.credit_card_last4}</p>
-                          </div>
-                          <p className="text-sm opacity-80 pl-8 dark:text-purple-300">ยอดเงินจะถูกเรียกเก็บในรอบบิลถัดไป</p>
-                          <div className="mt-3 pl-8 text-xs font-medium bg-white/50 dark:bg-black/20 p-2 rounded-lg inline-block">
-                             📅 สรุปยอดจ่าย: ฿{(totalPrice / 3).toLocaleString()} / เดือน (ผ่อน 3 เดือน 0%)
-                          </div>
-                      </div>
-                  )}
-               </div>
-            )}
-
-          </div>
         </div>
 
-        {/* สรุปยอด (Desktop: Sticky Top, Mobile: Fixed Bottom) */}
-        <div className="lg:col-span-1 fixed bottom-32 left-4 right-4 md:static md:bottom-auto md:left-auto md:right-auto p-4 md:p-0 bg-white/90 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none rounded-2xl md:rounded-none shadow-2xl md:shadow-none border border-white/50 md:border-none z-40 md:z-auto">
-          <div className="md:bg-white dark:md:bg-slate-800 lg:p-8 lg:rounded-[2.5rem] lg:shadow-2xl lg:shadow-blue-900/10 dark:shadow-black/50 lg:border lg:border-white/50 dark:border-slate-700 relative overflow-hidden">
-            {/* Decoration */}
-            <div className="hidden lg:block absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-100 to-transparent rounded-bl-full -mr-10 -mt-10 opacity-50"></div>
-            
-            <h3 className="hidden lg:block text-xl font-black text-gray-800 dark:text-white mb-6">Order Summary</h3>
-            
-            <div className="space-y-3 mb-6 hidden lg:block">
-              <div className="flex justify-between text-gray-600 dark:text-slate-300">
-                <span>ยอดรวมสินค้า</span>
-                <span>{totalPrice.toLocaleString()} บาท</span>
-              </div>
-              <div className="flex justify-between text-gray-600 dark:text-slate-300">
-                <span>ค่าจัดส่ง</span>
-                <span className="text-green-600 font-medium">ฟรี!</span>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Left Column: Cart Items */}
+            <div className="lg:col-span-8 space-y-8">
+                
+                {/* Cart Items List */}
+                <div className="space-y-4">
+                    <AnimatePresence mode='popLayout'>
+                    {items.map((item) => (
+                        <motion.div 
+                            key={item.menu_id}
+                            layout
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, x: -100 }}
+                            className="group relative bg-white dark:bg-slate-800 rounded-3xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl hover:border-blue-200 dark:hover:border-blue-900 transition-all duration-300"
+                        >
+                            <div className="flex gap-4 md:gap-6 items-center">
+                                {/* Image */}
+                                <div className="relative w-24 h-24 md:w-32 md:h-32 shrink-0 rounded-2xl overflow-hidden shadow-md bg-slate-100">
+                                    <img 
+                                        src={item.image_url || "https://placehold.co/200"} 
+                                        alt={item.menu_name} 
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    />
+                                </div>
 
-            <div className="flex items-center justify-between lg:block">
-                <div className="lg:border-t lg:border-dashed lg:border-gray-200 dark:border-slate-600 lg:pt-4 lg:mb-6">
-                    <p className="text-sm text-gray-500 lg:hidden">Total</p>
-                    <div className="flex justify-between font-black text-2xl text-gray-900 dark:text-white">
-                        <span className="hidden lg:inline">Total</span>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-900 to-gray-800">{totalPrice.toLocaleString()} ฿</span>
-                    </div>
+                                {/* Content */}
+                                <div className="flex-1 min-w-0 py-1 flex flex-col justify-between h-24 md:h-32">
+                                    <div>
+                                        <div className="flex justify-between items-start">
+                                            <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white truncate pr-4">{item.menu_name}</h3>
+                                            <p className="text-lg font-black text-amber-500 dark:text-amber-400">
+                                                ฿{(Number(item.price) * item.quantity).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">฿{Number(item.price).toLocaleString()} / unit</p>
+                                    </div>
+
+                                    <div className="flex items-end justify-between">
+                                        {/* Quantity Stepper */}
+                                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 rounded-xl p-1.5 border border-slate-200 dark:border-slate-700">
+                                            <button 
+                                                onClick={() => updateQuantity(item.menu_id, Math.max(1, item.quantity - 1))}
+                                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 active:scale-90 transition-all"
+                                            >
+                                                <Minus className="w-4 h-4" />
+                                            </button>
+                                            <span className="font-bold w-8 text-center text-slate-900 dark:text-white">{item.quantity}</span>
+                                            <button 
+                                                onClick={() => updateQuantity(item.menu_id, item.quantity + 1)}
+                                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 active:scale-90 transition-all"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        {/* Actions */}
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => addToast('Saved for later', 'success')}
+                                                className="p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-xl transition-all"
+                                                title="Save for later"
+                                            >
+                                                <Heart className="w-5 h-5" />
+                                            </button>
+                                            <button 
+                                                onClick={() => removeItem(item.menu_id)}
+                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                                                title="Remove"
+                                            >
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
+                    </AnimatePresence>
                 </div>
 
-                <button
-                onClick={handleCheckout}
-                disabled={isCheckingOut || (paymentMethod === 'promptpay' && !slipImage) || (paymentMethod === 'credit' && !user?.is_plus_member)}
-                className="w-1/2 lg:w-full bg-gradient-to-r from-blue-900 to-indigo-900 text-white py-4 rounded-2xl font-bold hover:shadow-xl hover:shadow-blue-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                {isCheckingOut ? (
-                    'Processing...'
-                ) : (
-                    <>
-                    {paymentMethod === 'promptpay' ? 'ยืนยันการโอนเงิน' : 'ยืนยันการสั่งซื้อ'} 
-                    <ArrowRight className="w-5 h-5" />
-                    </>
-                )}
-                </button>
             </div>
-          </div>
+
+            {/* Right Column: Order Summary (Sticky) */}
+            <div className="lg:col-span-4">
+                <div className="sticky top-24 space-y-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 md:p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+                        {/* Decorative Gradient */}
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full -mr-10 -mt-10 pointer-events-none"></div>
+
+                        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-6">Order Summary</h3>
+
+                        <div className="space-y-4 mb-8">
+                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                <span>Subtotal</span>
+                                <span className="font-medium text-slate-900 dark:text-white">฿{totalPrice.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                <span>Discount</span>
+                                <span className="text-slate-400 font-medium">-</span>
+                            </div>
+                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                <span>Service Fee</span>
+                                <span className="text-green-500 font-bold text-xs bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg">FREE</span>
+                            </div>
+                            
+                            {/* Divider */}
+                            <div className="h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent my-4"></div>
+                            
+                            <div className="flex justify-between items-end">
+                                <span className="font-bold text-lg text-slate-900 dark:text-white">Total</span>
+                                <span className="font-black text-4xl text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-yellow-600 drop-shadow-sm">
+                                    ฿{totalPrice.toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Desktop CTA */}
+                        <button
+                            onClick={handleCheckoutClick}
+                            className="hidden md:flex w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-600/30 hover:shadow-blue-600/40 hover:scale-[1.02] active:scale-95 transition-all items-center justify-center gap-2 group"
+                        >
+                            Proceed to Checkout <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </button>
+
+                        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
+                            <Lock className="w-3 h-3" /> SSL Secured Payment
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
       </div>
 
-      {/* Modal ผูกบัตรเครดิต */}
-      {showBindCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl relative">
-                <button onClick={() => setShowBindCard(false)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors">
-                    <X className="w-5 h-5 text-gray-500" />
-                </button>
-                
-                <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-blue-600">
-                        <CreditCard className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-xl font-black text-gray-900">ผูกบัตรเครดิต</h3>
-                    <p className="text-gray-500 text-sm">เพื่ออัปเกรดเป็น User Plus และใช้ระบบผ่อนชำระ</p>
+      {/* Mobile Sticky Bottom Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 pb-8 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-40">
+        <div className="flex items-center justify-between gap-4">
+            <div>
+                <p className="text-xs text-slate-500">Total</p>
+                <p className="text-2xl font-black text-slate-900 dark:text-white">฿{totalPrice.toLocaleString()}</p>
+            </div>
+            <button
+                onClick={handleCheckoutClick}
+                className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold text-base shadow-lg shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+                Checkout <ArrowRight className="w-5 h-5" />
+            </button>
+        </div>
+      </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative border border-slate-100 dark:border-slate-800 flex flex-col">
+                {/* Modal Header */}
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <Wallet className="w-6 h-6 text-blue-600" /> Payment
+                    </h3>
+                    <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                        <X className="w-6 h-6 text-slate-500" />
+                    </button>
                 </div>
 
-                <form onSubmit={handleBindCardSubmit} className="space-y-4">
+                <div className="p-6 md:p-8 space-y-8">
+                    {/* Payment Method Selection */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {[
+                            { id: 'promptpay', icon: QrCode, label: 'PromptPay', desc: 'Scan QR' },
+                            { id: 'credit', icon: CreditCard, label: 'Credit Card', desc: '0% Installment' },
+                            { id: 'cash', icon: Banknote, label: 'Cash', desc: 'Pay at Counter' }
+                        ].map((method) => (
+                            <button
+                                key={method.id}
+                                onClick={() => setPaymentMethod(method.id as any)}
+                                className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-300 ${
+                                    paymentMethod === method.id 
+                                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
+                                    : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
+                                }`}
+                            >
+                                {paymentMethod === method.id && (
+                                    <div className="absolute top-3 right-3 text-blue-600"><CheckCircle2 className="w-5 h-5" /></div>
+                                )}
+                                <method.icon className={`w-8 h-8 mb-3 ${paymentMethod === method.id ? 'text-blue-600' : 'text-slate-400'}`} />
+                                <p className="font-bold text-slate-900 dark:text-white">{method.label}</p>
+                                <p className="text-xs text-slate-500">{method.desc}</p>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Dynamic Content */}
+                    <div className="min-h-[300px]">
+                        {paymentMethod === 'promptpay' && (
+                            <div className="flex flex-col md:flex-row gap-8 animate-in fade-in slide-in-from-bottom-4">
+                                <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700">
+                                    <img src={generatePromptPayQR(PROMPTPAY_ID, totalPrice)} alt="QR" className="w-48 h-48 mix-blend-multiply dark:mix-blend-normal rounded-lg" />
+                                    <p className="font-mono font-bold text-lg mt-4 text-slate-700 dark:text-white">{PROMPTPAY_ID}</p>
+                                    <p className="text-sm text-slate-500">KASIKORN BANK</p>
+                                </div>
+                                <div className="flex-1 space-y-4">
+                                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800">
+                                        <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase mb-1">Ref ID (Required)</p>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-mono text-xl font-black text-slate-800 dark:text-white">{orderRef}</span>
+                                            <button onClick={() => copyToClipboard(orderRef)} className="text-amber-600 text-xs font-bold flex items-center gap-1"><Copy className="w-3 h-3" /> Copy</button>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-2">Put this ID in the transfer note.</p>
+                                    </div>
+
+                                    <div className="relative">
+                                        <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" id="slip-upload-modal" />
+                                        <label htmlFor="slip-upload-modal" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all ${slipImage ? 'border-green-500 bg-green-50 dark:bg-green-900/10' : 'border-slate-300 hover:border-blue-500 hover:bg-blue-50'}`}>
+                                            {slipImage ? (
+                                                <div className="text-green-600 flex flex-col items-center">
+                                                    <CheckCircle2 className="w-8 h-8 mb-2" />
+                                                    <span className="font-bold text-sm">Slip Attached</span>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                                                    <span className="text-sm font-medium text-slate-600">Upload Slip</span>
+                                                </>
+                                            )}
+                                        </label>
+                                    </div>
+
+                                    {slipImage && (
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input type="checkbox" checked={isRefIdConfirmed} onChange={e => setIsRefIdConfirmed(e.target.checked)} className="mt-1 w-4 h-4 text-blue-600 rounded" />
+                                            <span className="text-sm text-slate-600 dark:text-slate-400">I have included Ref ID <b>{orderRef}</b> in the slip note.</span>
+                                        </label>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {paymentMethod === 'credit' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                                <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-2xl relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                                    <div className="relative z-10">
+                                        <h4 className="font-bold text-lg mb-1">User Plus Benefit</h4>
+                                        <p className="text-slate-300 text-sm mb-4">0% Interest Installment Plan (3 Months)</p>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-black">฿{(totalPrice / 3).toLocaleString()}</span>
+                                            <span className="text-sm opacity-70">/ month</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {!user?.is_plus_member ? (
+                                    <div className="text-center py-8">
+                                        <Lock className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                                        <p className="text-slate-600 font-medium mb-4">Please link your card to unlock this feature</p>
+                                        <button onClick={() => setShowBindCard(true)} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-lg hover:bg-blue-700">Link Card</button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-4 p-4 border border-slate-200 rounded-xl">
+                                        <div className="w-12 h-8 bg-slate-200 rounded flex items-center justify-center"><CreditCard className="w-5 h-5 text-slate-500" /></div>
+                                        <div>
+                                            <p className="font-bold text-slate-800">•••• •••• •••• {user.credit_card_last4}</p>
+                                            <p className="text-xs text-green-600 font-medium">Active & Ready</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {paymentMethod === 'cash' && (
+                            <div className="text-center py-12 animate-in fade-in slide-in-from-bottom-4">
+                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <Banknote className="w-10 h-10 text-green-600" />
+                                </div>
+                                <h4 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Pay at Counter</h4>
+                                <p className="text-slate-500 max-w-xs mx-auto">Please proceed to the counter and show your order ID to the staff.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 sticky bottom-0 z-10">
+                    <button onClick={() => setShowPaymentModal(false)} className="px-6 py-3 text-slate-500 font-bold hover:bg-slate-200 rounded-xl transition-colors">Cancel</button>
+                    <button 
+                        onClick={handleConfirmOrder}
+                        disabled={isCheckingOut || isVerifying || (paymentMethod === 'promptpay' && (!slipImage || !isRefIdConfirmed)) || (paymentMethod === 'credit' && !user?.is_plus_member)}
+                        className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                        {isCheckingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Payment'}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Bind Card Modal */}
+      {showBindCard && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative border border-slate-100 dark:border-slate-800">
+                <button onClick={() => setShowBindCard(false)} className="absolute top-6 right-6 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                    <X className="w-5 h-5 text-slate-500" />
+                </button>
+                
+                <div className="text-center mb-8">
+                    <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/20 dark:to-amber-900/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <CreditCard className="w-10 h-10 text-amber-500" />
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Link Credit Card</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">Upgrade to User Plus for exclusive benefits</p>
+                </div>
+
+                <form onSubmit={handleBindCardSubmit} className="space-y-5">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">หมายเลขบัตร</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Card Number</label>
                         <input 
                             type="text" 
                             placeholder="0000 0000 0000 0000" 
                             maxLength={19}
-                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono text-lg"
                             value={cardForm.number}
                             onChange={e => setCardForm({...cardForm, number: e.target.value})}
                             required
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-5">
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">วันหมดอายุ</label>
-                            <input type="text" placeholder="MM/YY" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-center" required />
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Expiry</label>
+                            <input type="text" placeholder="MM/YY" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-center font-mono" required />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">CVV</label>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">CVV</label>
                             <input 
                                 type="password" 
                                 placeholder="123" 
                                 maxLength={3}
-                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-center" 
+                                className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-center font-mono" 
                                 value={cardForm.cvv}
                                 onChange={e => setCardForm({...cardForm, cvv: e.target.value})}
                                 required 
                             />
                         </div>
                     </div>
-                    <div className="pt-2">
-                        <button type="submit" className="w-full py-3 bg-blue-900 text-white rounded-xl font-bold hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2">
-                            <ShieldCheck className="w-4 h-4" /> ยืนยันและผูกบัตร
-                        </button>
-                        <p className="text-center text-[10px] text-gray-400 mt-3 flex items-center justify-center gap-1">
-                            <Lock className="w-3 h-3" /> ข้อมูลของคุณถูกเข้ารหัสด้วยมาตรฐานความปลอดภัยสูงสุด
-                        </p>
-                    </div>
+                    <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all mt-4 flex items-center justify-center gap-2">
+                        <ShieldCheck className="w-5 h-5" /> Secure Link
+                    </button>
                 </form>
+            </div>
+        </div>
+      )}
+
+      {/* Receipt Modal */}
+      {showReceiptModal && lastOrderData && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative">
+                <div className="p-6 bg-green-600 text-white text-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                    <div className="relative z-10">
+                        <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                            <CheckCircle2 className="w-8 h-8 text-white" />
+                        </div>
+                        <h3 className="text-2xl font-black tracking-tight">Payment Successful!</h3>
+                        <p className="text-green-100 text-sm">Thank you for your order</p>
+                    </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    <div className="text-center">
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Total Amount</p>
+                        <p className="text-4xl font-black text-slate-900 dark:text-white">฿{lastOrderData.total.toLocaleString()}</p>
+                        <div className="flex items-center justify-center gap-2 mt-2">
+                            <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-mono text-slate-500">
+                                Ref: {lastOrderData.ref}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-b border-dashed border-slate-200 dark:border-slate-700 py-4 space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
+                        {lastOrderData.items.map((item: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-sm">
+                                <span className="text-slate-600 dark:text-slate-400">
+                                    <span className="font-bold text-slate-900 dark:text-white">{item.quantity}x</span> {item.menu_name}
+                                </span>
+                                <span className="font-medium text-slate-900 dark:text-white">฿{(Number(item.price) * item.quantity).toLocaleString()}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm text-slate-500">
+                            <span>Date</span>
+                            <span>{lastOrderData.date.toLocaleString('th-TH')}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-slate-500">
+                            <span>Payment Method</span>
+                            <span className="uppercase font-bold">{lastOrderData.paymentMethod}</span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                        <button 
+                            onClick={() => window.print()}
+                            className="py-3 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2 transition-colors"
+                        >
+                            <Printer className="w-4 h-4" /> Print
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setShowReceiptModal(false);
+                                navigate('/orders');
+                            }}
+                            className="py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:opacity-90 flex items-center justify-center gap-2 shadow-lg transition-all"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
       )}
