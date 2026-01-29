@@ -268,7 +268,7 @@ export const DashboardLayout = () => {
                      <div className="flex-1 min-w-0">
                         <p className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>{user?.username}</p>
                         <p className={`text-[10px] font-mono uppercase tracking-wider ${user?.is_plus_member ? 'text-amber-500 font-bold' : 'text-slate-500'}`}>
-                            {user?.role === 'ADMIN' ? 'ADMINISTRATOR' : user?.is_plus_member ? '✨ PLUS MEMBER' : 'GENERAL USER'}
+                            {user?.role === 'ADMIN' ? 'ADMINISTRATOR' : user?.is_plus_member ? <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500 font-black drop-shadow-sm">👑 PLUS MEMBER</span> : 'GENERAL USER'}
                         </p>
                      </div>
                  )}

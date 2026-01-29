@@ -364,8 +364,8 @@ export const SettingsPage = () => {
                   <Shield className="w-3 h-3" /> {isAdmin ? 'ADMIN' : 'USER'}
                 </span>
                 {loggedInUser?.is_plus_member && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border border-amber-200">
-                    <Sparkles className="w-3 h-3" /> PLUS MEMBER
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 text-white border border-yellow-200 shadow-[0_0_15px_rgba(251,191,36,0.5)] animate-pulse">
+                    <Crown className="w-3 h-3 fill-current" /> PLUS MEMBER
                   </span>
                 )}
              </div>
@@ -378,20 +378,20 @@ export const SettingsPage = () => {
 
           {/* User Plus / Shop Status */}
           {isEditingSelf && (
-            <div className={`rounded-3xl p-1 shadow-xl relative overflow-hidden transition-all hover:scale-[1.02] ${loggedInUser?.is_plus_member ? 'bg-gradient-to-br from-amber-300 via-yellow-400 to-orange-500' : 'bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800'}`}>
-              <div className={`h-full rounded-[1.3rem] p-6 relative overflow-hidden ${loggedInUser?.is_plus_member ? 'bg-slate-900 text-white' : 'bg-white dark:bg-slate-800'}`}>
+            <div className={`rounded-3xl p-[2px] shadow-xl relative overflow-hidden transition-all hover:scale-[1.02] ${loggedInUser?.is_plus_member ? 'bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 shadow-amber-500/20' : 'bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800'}`}>
+              <div className={`h-full rounded-[1.4rem] p-6 relative overflow-hidden ${loggedInUser?.is_plus_member ? 'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black text-white' : 'bg-white dark:bg-slate-800'}`}>
                 
                 {/* Header of Card */}
                 <div className="flex items-center gap-3 mb-4">
-                   <div className={`p-2.5 rounded-xl shadow-inner ${loggedInUser?.is_plus_member ? 'bg-gradient-to-br from-amber-400 to-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300'}`}>
-                      {loggedInUser?.is_plus_member ? <Crown className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
+                   <div className={`p-2.5 rounded-xl shadow-inner ${loggedInUser?.is_plus_member ? 'bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 text-white shadow-[0_0_15px_rgba(251,191,36,0.4)]' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300'}`}>
+                      {loggedInUser?.is_plus_member ? <Crown className="w-6 h-6 fill-current" /> : <Sparkles className="w-6 h-6" />}
                    </div>
                    <div>
-                      <h3 className={`font-black text-lg leading-tight ${loggedInUser?.is_plus_member ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-400' : 'text-slate-800 dark:text-white'}`}>
-                        {loggedInUser?.is_plus_member ? 'PLUS MEMBER' : 'อัปเกรดเป็น PLUS'}
+                      <h3 className={`font-black text-lg leading-tight ${loggedInUser?.is_plus_member ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-400 drop-shadow-sm' : 'text-slate-800 dark:text-white'}`}>
+                        {loggedInUser?.is_plus_member ? 'PREMIUM STATUS' : 'อัปเกรดเป็น PLUS'}
                       </h3>
                       <p className={`text-xs font-medium ${loggedInUser?.is_plus_member ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {loggedInUser?.is_plus_member ? 'สถานะสมาชิก: ปกติ (Active)' : 'ปลดล็อกขีดจำกัดของคุณ'}
+                        {loggedInUser?.is_plus_member ? 'สถานะสมาชิก: เหนือระดับ (Active)' : 'ปลดล็อกขีดจำกัดของคุณ'}
                       </p>
                    </div>
                 </div>
@@ -399,23 +399,23 @@ export const SettingsPage = () => {
                 {/* Benefits List */}
                 <div className="space-y-3 mb-6">
                     <div className="flex items-start gap-3">
-                        <div className={`mt-0.5 p-1 rounded-full ${loggedInUser?.is_plus_member ? 'bg-green-500/20 text-green-400' : 'bg-blue-50 text-blue-600'}`}><Wallet className="w-3 h-3" /></div>
+                        <div className={`mt-0.5 p-1 rounded-full ${loggedInUser?.is_plus_member ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-50 text-blue-600'}`}><Wallet className="w-3 h-3" /></div>
                         <div className="text-sm">
-                            <p className={`font-bold ${loggedInUser?.is_plus_member ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>ระบบผ่อนชำระ (Pay Later)</p>
+                            <p className={`font-bold ${loggedInUser?.is_plus_member ? 'text-amber-100' : 'text-slate-700 dark:text-slate-200'}`}>ระบบผ่อนชำระ (Pay Later)</p>
                             <p className={`text-xs ${loggedInUser?.is_plus_member ? 'text-slate-400' : 'text-slate-500'}`}>ช้อปก่อนจ่ายทีหลัง วงเงินสูงสุด 5,000฿</p>
                         </div>
                     </div>
                     <div className="flex items-start gap-3">
-                        <div className={`mt-0.5 p-1 rounded-full ${loggedInUser?.is_plus_member ? 'bg-green-500/20 text-green-400' : 'bg-blue-50 text-blue-600'}`}><Store className="w-3 h-3" /></div>
+                        <div className={`mt-0.5 p-1 rounded-full ${loggedInUser?.is_plus_member ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-50 text-blue-600'}`}><Store className="w-3 h-3" /></div>
                         <div className="text-sm">
-                            <p className={`font-bold ${loggedInUser?.is_plus_member ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>เปิดร้านค้า (Merchant)</p>
+                            <p className={`font-bold ${loggedInUser?.is_plus_member ? 'text-amber-100' : 'text-slate-700 dark:text-slate-200'}`}>เปิดร้านค้า (Merchant)</p>
                             <p className={`text-xs ${loggedInUser?.is_plus_member ? 'text-slate-400' : 'text-slate-500'}`}>สร้างร้านอาหารและรับออเดอร์ได้ทันที</p>
                         </div>
                     </div>
                     <div className="flex items-start gap-3">
-                        <div className={`mt-0.5 p-1 rounded-full ${loggedInUser?.is_plus_member ? 'bg-green-500/20 text-green-400' : 'bg-blue-50 text-blue-600'}`}><TrendingUp className="w-3 h-3" /></div>
+                        <div className={`mt-0.5 p-1 rounded-full ${loggedInUser?.is_plus_member ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-50 text-blue-600'}`}><TrendingUp className="w-3 h-3" /></div>
                         <div className="text-sm">
-                            <p className={`font-bold ${loggedInUser?.is_plus_member ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>แดชบอร์ดร้านค้า</p>
+                            <p className={`font-bold ${loggedInUser?.is_plus_member ? 'text-amber-100' : 'text-slate-700 dark:text-slate-200'}`}>แดชบอร์ดร้านค้า</p>
                             <p className={`text-xs ${loggedInUser?.is_plus_member ? 'text-slate-400' : 'text-slate-500'}`}>ดูยอดขายและสถิติแบบ Real-time</p>
                         </div>
                     </div>
@@ -424,9 +424,9 @@ export const SettingsPage = () => {
                   {loggedInUser?.is_plus_member ? (
                       <button 
                         onClick={() => navigate('/my-shop')}
-                        className="w-full py-3 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-amber-500/20 transition-all shadow-md flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 text-slate-900 rounded-xl text-sm font-black hover:shadow-[0_0_20px_rgba(251,191,36,0.4)] hover:scale-[1.02] transition-all shadow-lg flex items-center justify-center gap-2"
                       >
-                        <Store className="w-4 h-4" /> จัดการร้านค้า
+                        <Store className="w-4 h-4" /> เข้าสู่ระบบร้านค้า
                       </button>
                   ) : (
                       <button 
@@ -685,15 +685,15 @@ export const SettingsPage = () => {
                     <X className="w-5 h-5 text-gray-500" />
                 </button>
 
-                <div className="bg-gradient-to-br from-blue-900 to-indigo-900 p-8 text-center relative overflow-hidden">
+                <div className="bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black p-8 text-center relative overflow-hidden border-b border-amber-500/20">
                     <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500 rounded-full blur-3xl opacity-30"></div>
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-500 rounded-full blur-3xl opacity-20"></div>
                     
-                    <div className="w-20 h-20 bg-gradient-to-br from-amber-300 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-lg shadow-amber-500/30 rotate-3">
-                        <Crown className="w-10 h-10" />
+                    <div className="w-20 h-20 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-[0_0_30px_rgba(245,158,11,0.4)] rotate-3 border border-white/20">
+                        <Crown className="w-10 h-10 fill-current" />
                     </div>
-                    <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-md">User Plus</h3>
-                    <p className="text-blue-200 text-sm font-medium mt-1">ปลดล็อกขีดจำกัดของคุณ เพียง 199฿</p>
+                    <h3 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-400 tracking-tight drop-shadow-sm">User Plus</h3>
+                    <p className="text-amber-100/60 text-sm font-medium mt-1">ปลดล็อกขีดจำกัดของคุณ เพียง 199฿</p>
                 </div>
 
                 <div className="p-8">
@@ -718,7 +718,8 @@ export const SettingsPage = () => {
                         </div>
                     </div>
 
-                    <button onClick={handleSubscribe} className="w-full py-3.5 bg-blue-900 text-white rounded-xl font-bold text-lg hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20">
+                    <button onClick={handleSubscribe} className="w-full py-3.5 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all shadow-md border border-slate-700 relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-amber-400/10 to-amber-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                         สมัครเลย ฿199 / เดือน
                     </button>
                     <p className="text-center text-xs text-gray-400 mt-4">ยกเลิกได้ตลอดเวลา • ชำระผ่านบัตรเครดิต</p>

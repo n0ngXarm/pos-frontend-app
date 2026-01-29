@@ -452,14 +452,14 @@ export const CartPage = () => {
 
                         {paymentMethod === 'credit' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                                <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-2xl relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                                <div className="bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black text-white p-6 rounded-2xl relative overflow-hidden border border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
                                     <div className="relative z-10">
-                                        <h4 className="font-bold text-lg mb-1">User Plus Benefit</h4>
-                                        <p className="text-slate-300 text-sm mb-4">0% Interest Installment Plan (3 Months)</p>
+                                        <h4 className="font-black text-lg mb-1 text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-400 flex items-center gap-2"><Crown className="w-5 h-5 text-amber-400 fill-current" /> User Plus Benefit</h4>
+                                        <p className="text-amber-100/70 text-sm mb-4">0% Interest Installment Plan (3 Months)</p>
                                         <div className="flex items-baseline gap-2">
-                                            <span className="text-3xl font-black">฿{(totalPrice / 3).toLocaleString()}</span>
-                                            <span className="text-sm opacity-70">/ month</span>
+                                            <span className="text-3xl font-black text-white drop-shadow-md">฿{(totalPrice / 3).toLocaleString()}</span>
+                                            <span className="text-sm text-amber-200/60">/ month</span>
                                         </div>
                                     </div>
                                 </div>
