@@ -2,7 +2,8 @@ import axios from 'axios';
 import { useAuthStore } from '../stores/use-auth-store'; // ✅ ตรงกับชื่อไฟล์ use-auth-store.ts
 
 // 🔧 ปรับแก้: รองรับ Vercel และ Localhost อัตโนมัติ
-const envUrl = import.meta.env.VITE_API_URL;
+const envUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : undefined;
+
 const BASE_URL = envUrl 
   ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) 
   : (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://backend048.vercel.app/api');
